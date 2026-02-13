@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: car_school_automatization
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/car_school_automatization_bd
+    username: postgres
+    password: postgres
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
