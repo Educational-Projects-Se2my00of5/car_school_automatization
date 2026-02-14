@@ -60,7 +60,7 @@ class UserControllerTests {
     @CsvSource({
             "Anna, Ivanova, 20, +79001112233, anna@test.ru, password, STUDENT",
             "Boris, Petrov, 35, +79002223344, boris@test.ru, password, TEACHER",
-            "Olga, Sidorova, 25, +79003334455, olga@test.ru, password,  ADMIN"
+            "Olga, Sidorova, 25, +79003334455, olga@test.ru, password,  MANAGER"
     })
     void createUser_withDifferentData(
             String firstName, String lastName, Integer age,
@@ -104,12 +104,12 @@ class UserControllerTests {
         // Arrange
         User user1 = userEntity(1L, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, true);
         User user2 = userEntity(2L, "Jane", "Smith", 25, "+79002223344", "jane@test.ru", "hash", Role.TEACHER, true);
-        User user3 = userEntity(3L, "Bob", "Johnson", 30, "+79003334455", "bob@test.ru", "hash", Role.ADMIN, true);
+        User user3 = userEntity(3L, "Bob", "Johnson", 30, "+79003334455", "bob@test.ru", "hash", Role.MANAGER, true);
         List<User> userEntities = Arrays.asList(user1, user2, user3);
 
         UserDto.FullInfo dto1 = userFullInfoDto(1L, "John", "Doe", 20, "+79001112233", "john@test.ru", Role.STUDENT, true);
         UserDto.FullInfo dto2 = userFullInfoDto(2L, "Jane", "Smith", 25, "+79002223344", "jane@test.ru", Role.TEACHER, true);
-        UserDto.FullInfo dto3 = userFullInfoDto(3L, "Bob", "Johnson", 30, "+79003334455", "bob@test.ru", Role.ADMIN, true);
+        UserDto.FullInfo dto3 = userFullInfoDto(3L, "Bob", "Johnson", 30, "+79003334455", "bob@test.ru", Role.MANAGER, true);
         List<UserDto.FullInfo> expectedDtos = Arrays.asList(dto1, dto2, dto3);
 
         when(userRepository.findAll()).thenReturn(userEntities);

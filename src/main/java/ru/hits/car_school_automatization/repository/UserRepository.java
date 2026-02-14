@@ -10,4 +10,5 @@ import ru.hits.car_school_automatization.entity.User;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    boolean existsByEmail(String email);
 }

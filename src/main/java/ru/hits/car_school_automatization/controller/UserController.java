@@ -1,5 +1,6 @@
 package ru.hits.car_school_automatization.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,67 +20,51 @@ public class UserController {
 
     private final UserService userService;
 
-    /**
-     * Создание нового пользователя
-     */
+    @Operation(summary = "Создание нового пользователя")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserDto.FullInfo createUser(@Valid @RequestBody UserDto.CreateUser dto) {
         return userService.createUser(dto);
     }
 
-    /**
-     * Получение всех пользователей
-     */
+    @Operation(summary = "Получение всех пользователей")
     @GetMapping
     public List<UserDto.FullInfo> getAllUsers() {
         return userService.getAllUsers();
     }
 
-    /**
-     * Получение пользователя по ID
-     */
+    @Operation(summary = "Получение пользователя по ID")
     @GetMapping("/{id}")
     public UserDto.FullInfo getUserById(@PathVariable Long id) {
         return userService.getUserById(id);
     }
 
-    /**
-     * Обновление данных пользователя
-     */
+    @Operation(summary = "Обновление данных пользователя")
     @PutMapping("/{id}")
     public UserDto.FullInfo updateUser(@PathVariable Long id, @Valid @RequestBody UserDto.UpdateUser dto) {
         return userService.updateUser(id, dto);
     }
 
-    /**
-     * Удаление пользователя
-     */
+    @Operation(summary = "Удаление пользователя")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
     }
 
-    /**
-     * Деактивация пользователя
-     */
+    @Operation(summary = "Деактивация пользователя")
     @PatchMapping("/{id}/deactivate")
     public UserDto.FullInfo deactivateUser(@PathVariable Long id) {
         return userService.deactivateUser(id);
     }
 
-    /**
-     * Активация пользователя
-     */
+    @Operation(summary = "Активация пользователя")
     @PatchMapping("/{id}/activate")
     public UserDto.FullInfo activateUser(@PathVariable Long id) {
         return userService.activateUser(id);
     }
 
-    /**
-     * Смена пароля пользователя
-     */
+    @Operation(summary = "Смена пароля пользователя")
     @PatchMapping("/{id}/change-password")
     public UserDto.FullInfo changePassword(@PathVariable Long id, @Valid @RequestBody UserDto.ChangePassword dto) {
         return userService.changePassword(id, dto);
