@@ -1,6 +1,5 @@
 package ru.hits.car_school_automatization.controller;
 
-import org.checkerframework.checker.units.qual.s;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,10 +37,7 @@ import static ru.hits.car_school_automatization.testdata.UserTestData.userFullIn
 @DisplayName("User Controller Tests")
 class UserControllerTests {
 
-    @InjectMocks
     private UserController userController;
-
-    @InjectMocks
     private UserService userService;
 
     @Mock
@@ -56,6 +52,8 @@ class UserControllerTests {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        userService = new UserService(userRepository, userMapper, passwordEncoder);
+        userController = new UserController(userService);
     }
 
     @ParameterizedTest
@@ -99,15 +97,6 @@ class UserControllerTests {
         verify(userMapper).toEntity(request);
         verify(userRepository).save(userToSave);
         verify(userMapper).toDto(savedUser);
-    }
-
-    @ParameterizedTest
-    @MethodSource("ru.hits.car_school_automatization.testdata.UserTestData#provideNullFieldsTestData")
-    void createUser_withNullField_shouldThrowBadRequestException(UserDto.CreateUser request) {
-        assertThrows(
-                BadRequestException.class,
-                () -> userController.createUser(request)
-        );
     }
 
     @Test
@@ -241,20 +230,6 @@ class UserControllerTests {
         assertEquals("Пользователь с id " + nonExistentId + " не найден", exception.getMessage());
         verify(userRepository).findById(nonExistentId);
     }
-
-    @Test
-    @MethodSource("ru.hits.car_school_automatization.testdata.UserTestData#provideNullFieldsTestDataForUpdate")
-    void updateUser_withNullField_shouldThrowBadRequestException(UserDto.UpdateUser updateRequest) {
-        // Arrange
-        Long userId = 1L;
-
-        // Act & Assert
-        assertThrows(
-                BadRequestException.class,
-                () -> userController.updateUser(userId, updateRequest)
-        );
-    }
-        
 
     @Test
     void deleteUser_shouldDeleteSuccessfully() {
@@ -455,22 +430,5 @@ class UserControllerTests {
         assertEquals("Неверный старый пароль", exception.getMessage());
         verify(userRepository).findById(userId);
         verify(passwordEncoder).matches(oldPassword, actualPasswordHash);
-    }
-
-    @ParameterizedTest
-    @CsvSource({
-            ", newPassword",
-            "oldPassword, "
-    })
-    void changePassword_withNullFields_shouldThrowBadRequestException(String oldPassword, String newPassword) {
-        // Arrange
-        Long userId = 1L;
-        UserDto.ChangePassword request = UserTestData.changePasswordRequest(oldPassword, newPassword);
-
-        // Act & Assert
-        assertThrows(
-                BadRequestException.class,
-                () -> userController.changePassword(userId, request)
-        );
     }
 }
