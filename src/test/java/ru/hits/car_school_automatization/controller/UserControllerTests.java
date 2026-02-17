@@ -15,6 +15,7 @@ import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.mapper.UserMapper;
 import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.security.JwtTokenProvider;
 import ru.hits.car_school_automatization.service.UserService;
 import ru.hits.car_school_automatization.testdata.UserTestData;
 
@@ -28,6 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.anyString;
+import static ru.hits.car_school_automatization.testdata.AuthTestData.authHeader;
 import static ru.hits.car_school_automatization.testdata.UserTestData.createUserRequest;
 import static ru.hits.car_school_automatization.testdata.UserTestData.userEntity;
 import static ru.hits.car_school_automatization.testdata.UserTestData.userFullInfoDto;
@@ -47,10 +52,13 @@ class UserControllerTests {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private JwtTokenProvider jwtTokenProvider;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        userService = new UserService(userRepository, userMapper, passwordEncoder);
+        userService = new UserService(userRepository, userMapper, passwordEncoder, jwtTokenProvider);
         userController = new UserController(userService);
     }
 
@@ -350,8 +358,11 @@ class UserControllerTests {
     }
 
     @Test
-    void changePassword() {
+    @DisplayName("Успешная смена пароля с валидным токеном")
+    void changePassword_withValidToken_shouldChangePasswordSuccessfully() {
         // Arrange
+        String token = "valid-token";
+        String authHeaderValue = authHeader(token);
         Long userId = 1L;
         String oldPassword = "oldPassword123";
         String newPassword = "newPassword456";
@@ -364,6 +375,9 @@ class UserControllerTests {
         User updatedUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", newPasswordHash, Role.STUDENT, true);
         UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", Role.STUDENT, true);
 
+        when(jwtTokenProvider.extractTokenFromHeader(authHeaderValue)).thenReturn(token);
+        when(jwtTokenProvider.validateToken(token)).thenReturn(true);
+        when(jwtTokenProvider.getUserIdFromToken(token)).thenReturn(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(oldPassword, oldPasswordHash)).thenReturn(true);
         when(passwordEncoder.encode(newPassword)).thenReturn(newPasswordHash);
@@ -371,7 +385,7 @@ class UserControllerTests {
         when(userMapper.toDto(updatedUser)).thenReturn(expected);
 
         // Act
-        UserDto.FullInfo result = userController.changePassword(userId, request);
+        UserDto.FullInfo result = userController.changePassword(authHeaderValue, request);
 
         // Assert
         assertAll(
@@ -379,6 +393,9 @@ class UserControllerTests {
                 () -> assertEquals(userId, result.getId())
         );
 
+        verify(jwtTokenProvider).extractTokenFromHeader(authHeaderValue);
+        verify(jwtTokenProvider).validateToken(token);
+        verify(jwtTokenProvider).getUserIdFromToken(token);
         verify(userRepository).findById(userId);
         verify(passwordEncoder).matches(oldPassword, oldPasswordHash);
         verify(passwordEncoder).encode(newPassword);
@@ -387,26 +404,35 @@ class UserControllerTests {
     }
 
     @Test
-    void changePassword_whenUserNotFound_shouldThrowNotFoundException() {
+    @DisplayName("Смена пароля с невалидным токеном должна выбросить исключение")
+    void changePassword_withInvalidToken_shouldThrowBadRequestException() {
         // Arrange
-        Long nonExistentId = 999L;
+        String token = "invalid-token";
+        String authHeaderValue = authHeader(token);
         UserDto.ChangePassword request = UserTestData.changePasswordRequest("oldPassword", "newPassword");
 
-        when(userRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+        when(jwtTokenProvider.extractTokenFromHeader(authHeaderValue)).thenReturn(token);
+        when(jwtTokenProvider.validateToken(token)).thenReturn(false);
 
         // Act & Assert
-        NotFoundException exception = assertThrows(
-                NotFoundException.class,
-                () -> userController.changePassword(nonExistentId, request)
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> userController.changePassword(authHeaderValue, request)
         );
 
-        assertEquals("Пользователь с id " + nonExistentId + " не найден", exception.getMessage());
-        verify(userRepository).findById(nonExistentId);
+        assertEquals("Невалидный или истёкший токен", exception.getMessage());
+        verify(jwtTokenProvider).extractTokenFromHeader(authHeaderValue);
+        verify(jwtTokenProvider).validateToken(token);
+        verify(jwtTokenProvider, never()).getUserIdFromToken(anyString());
+        verify(userRepository, never()).findById(any());
     }
 
     @Test
-    void changePassword_whenOldPasswordIncorrect_shouldThrowBadRequestException() {
+    @DisplayName("Смена пароля с неверным старым паролем должна выбросить исключение")
+    void changePassword_withIncorrectOldPassword_shouldThrowBadRequestException() {
         // Arrange
+        String token = "valid-token";
+        String authHeaderValue = authHeader(token);
         Long userId = 1L;
         String oldPassword = "wrongPassword";
         String newPassword = "newPassword456";
@@ -416,17 +442,132 @@ class UserControllerTests {
 
         User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", actualPasswordHash, Role.STUDENT, true);
 
+        when(jwtTokenProvider.extractTokenFromHeader(authHeaderValue)).thenReturn(token);
+        when(jwtTokenProvider.validateToken(token)).thenReturn(true);
+        when(jwtTokenProvider.getUserIdFromToken(token)).thenReturn(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(oldPassword, actualPasswordHash)).thenReturn(false);
 
         // Act & Assert
         BadRequestException exception = assertThrows(
                 BadRequestException.class,
-                () -> userController.changePassword(userId, request)
+                () -> userController.changePassword(authHeaderValue, request)
         );
 
         assertEquals("Неверный старый пароль", exception.getMessage());
+        verify(jwtTokenProvider).extractTokenFromHeader(authHeaderValue);
+        verify(jwtTokenProvider).validateToken(token);
+        verify(jwtTokenProvider).getUserIdFromToken(token);
         verify(userRepository).findById(userId);
         verify(passwordEncoder).matches(oldPassword, actualPasswordHash);
+    }
+
+    @Test
+    @DisplayName("Успешное получение профиля по токену")
+    void getProfile_withValidToken_shouldReturnUserProfile() {
+        // Arrange
+        String token = "valid-token";
+        String authHeaderValue = authHeader(token);
+        Long userId = 1L;
+
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, true);
+        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", Role.STUDENT, true);
+
+        when(jwtTokenProvider.extractTokenFromHeader(authHeaderValue)).thenReturn(token);
+        when(jwtTokenProvider.validateToken(token)).thenReturn(true);
+        when(jwtTokenProvider.getUserIdFromToken(token)).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userMapper.toDto(user)).thenReturn(expected);
+
+        // Act
+        UserDto.FullInfo result = userController.getProfile(authHeaderValue);
+
+        // Assert
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(userId, result.getId()),
+                () -> assertEquals("John", result.getFirstName()),
+                () -> assertEquals("Doe", result.getLastName()),
+                () -> assertEquals("john@test.ru", result.getEmail())
+        );
+
+        verify(jwtTokenProvider).extractTokenFromHeader(authHeaderValue);
+        verify(jwtTokenProvider).validateToken(token);
+        verify(jwtTokenProvider).getUserIdFromToken(token);
+        verify(userRepository).findById(userId);
+        verify(userMapper).toDto(user);
+    }
+
+    @Test
+    @DisplayName("Получение профиля с невалидным токеном должно выбросить исключение")
+    void getProfile_withInvalidToken_shouldThrowBadRequestException() {
+        // Arrange
+        String token = "invalid-token";
+        String authHeaderValue = authHeader(token);
+
+        when(jwtTokenProvider.extractTokenFromHeader(authHeaderValue)).thenReturn(token);
+        when(jwtTokenProvider.validateToken(token)).thenReturn(false);
+
+        // Act & Assert
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> userController.getProfile(authHeaderValue)
+        );
+
+        assertEquals("Невалидный или истёкший токен", exception.getMessage());
+        verify(jwtTokenProvider).extractTokenFromHeader(authHeaderValue);
+        verify(jwtTokenProvider).validateToken(token);
+        verify(jwtTokenProvider, never()).getUserIdFromToken(anyString());
+        verify(userRepository, never()).findById(any());
+    }
+
+    @Test
+    @DisplayName("Успешная смена роли пользователя")
+    void changeUserRole_withValidData_shouldChangeRoleSuccessfully() {
+        // Arrange
+        Long userId = 1L;
+        Role newRole = Role.TEACHER;
+        UserDto.ChangeRole request = UserTestData.changeRoleRequest(newRole);
+
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, true);
+        User updatedUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.TEACHER, true);
+        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", Role.TEACHER, true);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(updatedUser);
+        when(userMapper.toDto(updatedUser)).thenReturn(expected);
+
+        // Act
+        UserDto.FullInfo result = userController.changeUserRole(userId, request);
+
+        // Assert
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(userId, result.getId()),
+                () -> assertEquals(Role.TEACHER, result.getRole())
+        );
+
+        verify(userRepository).findById(userId);
+        verify(userRepository).save(user);
+        verify(userMapper).toDto(updatedUser);
+    }
+
+    @Test
+    @DisplayName("Смена роли несуществующего пользователя должна выбросить исключение")
+    void changeUserRole_whenUserNotFound_shouldThrowNotFoundException() {
+        // Arrange
+        Long nonExistentId = 999L;
+        UserDto.ChangeRole request = UserTestData.changeRoleRequest(Role.TEACHER);
+
+        when(userRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
+                () -> userController.changeUserRole(nonExistentId, request)
+        );
+
+        assertEquals("Пользователь с id " + nonExistentId + " не найден", exception.getMessage());
+        verify(userRepository).findById(nonExistentId);
     }
 }

@@ -69,4 +69,10 @@ public class UserTestData {
                 .newPassword(newPassword)
                 .build();
     }
+
+    public static UserDto.ChangeRole changeRoleRequest(Role role) {
+        return UserDto.ChangeRole.builder()
+                .role(role)
+                .build();
+    }
 }
