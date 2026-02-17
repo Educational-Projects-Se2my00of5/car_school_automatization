@@ -10,6 +10,7 @@ import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.mapper.UserMapper;
 import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.security.JwtTokenProvider;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,6 +26,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * Создание нового пользователя
@@ -112,16 +114,49 @@ public class UserService {
     }
 
     /**
-     * Смена пароля пользователя
+     * Смена пароля пользователя по токену
      */
-    public UserDto.FullInfo changePassword(Long id, UserDto.ChangePassword dto) {
-        User user = findUserById(id);
+    public UserDto.FullInfo changePassword(String authHeader, UserDto.ChangePassword dto) {
+        String token = jwtTokenProvider.extractTokenFromHeader(authHeader);
+        
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw new BadRequestException("Невалидный или истёкший токен");
+        }
+
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
+        User user = findUserById(userId);
 
         if (!passwordEncoder.matches(dto.getOldPassword(), user.getPasswordHash())) {
             throw new BadRequestException("Неверный старый пароль");
         }
 
         user.setPasswordHash(passwordEncoder.encode(dto.getNewPassword()));
+        User updatedUser = userRepository.save(user);
+        return userMapper.toDto(updatedUser);
+    }
+
+    /**
+     * Получение профиля текущего пользователя по токену
+     */
+    @Transactional(readOnly = true)
+    public UserDto.FullInfo getProfile(String authHeader) {
+        String token = jwtTokenProvider.extractTokenFromHeader(authHeader);
+        
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw new BadRequestException("Невалидный или истёкший токен");
+        }
+
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
+        User user = findUserById(userId);
+        return userMapper.toDto(user);
+    }
+
+    /**
+     * Смена роли пользователя
+     */
+    public UserDto.FullInfo changeUserRole(Long id, UserDto.ChangeRole dto) {
+        User user = findUserById(id);
+        user.setRole(dto.getRole());
         User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
     }

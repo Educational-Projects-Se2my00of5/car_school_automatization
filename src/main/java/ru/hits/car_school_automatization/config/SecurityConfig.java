@@ -22,11 +22,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/users").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.PUT, "/users/**").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.PATCH, "/users/*/deactivate", "/users/*/activate").hasRole("MANAGER")
-                        // нужно поменять через authHeader пользователь может поменять только свой пароль
-                        .requestMatchers(HttpMethod.PATCH, "/users/*/change-password").authenticated()
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/users/*/deactivate", "/users/*/activate", "/users/*/change-role"
+                        ).hasRole("MANAGER")
+                        .requestMatchers("/users/change-password", "/users/profile").authenticated()
                         .requestMatchers(HttpMethod.GET, "/users", "/users/**").hasAnyRole("TEACHER", "MANAGER")
-                        // TODO нужно добавить /me эндпоинты, но после AuthController, так как требуется работа с токеном
+
                         .requestMatchers("auth/**").permitAll()
 
                         .anyRequest().permitAll()

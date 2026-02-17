@@ -101,4 +101,16 @@ public class UserDto {
         @NotNull(message = "Новый пароль не может быть null")
         private String newPassword;
     }
+
+    /**
+     * DTO для смены роли пользователя
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChangeRole {
+        @NotNull(message = "Роль не может быть null")
+        private Role role;
+    }
 }

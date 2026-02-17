@@ -1,6 +1,7 @@
 package ru.hits.car_school_automatization.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -73,9 +75,24 @@ public class UserController {
         return userService.activateUser(id);
     }
 
-    @Operation(summary = "Смена пароля пользователя")
-    @PatchMapping("/{id}/change-password")
-    public UserDto.FullInfo changePassword(@PathVariable Long id, @Valid @RequestBody UserDto.ChangePassword dto) {
-        return userService.changePassword(id, dto);
+    @Operation(summary = "Смена пароля текущего пользователя")
+    @PatchMapping("/change-password")
+    public UserDto.FullInfo changePassword(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody UserDto.ChangePassword dto) {
+        return userService.changePassword(authHeader, dto);
+    }
+
+    @Operation(summary = "Получение профиля текущего пользователя")
+    @GetMapping("/profile")
+    public UserDto.FullInfo getProfile(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return userService.getProfile(authHeader);
+    }
+
+    @Operation(summary = "Смена роли пользователя")
+    @PatchMapping("/{id}/change-role")
+    public UserDto.FullInfo changeUserRole(@PathVariable Long id, @Valid @RequestBody UserDto.ChangeRole dto) {
+        return userService.changeUserRole(id, dto);
     }
 }
