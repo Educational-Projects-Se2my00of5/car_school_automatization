@@ -42,7 +42,7 @@ public class AuthService {
      */
     public AuthDto.TokenResponse refreshToken(String authHeader) {
         String token = jwtTokenProvider.extractTokenFromHeader(authHeader);
-        
+
         if (!jwtTokenProvider.validateToken(token)) {
             throw new BadRequestException("Невалидный или истёкший токен");
         }

@@ -1,6 +1,7 @@
 package ru.hits.car_school_automatization.mapper;
 
-import org.mapstruct.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import ru.hits.car_school_automatization.dto.UserDto;
 import ru.hits.car_school_automatization.entity.User;
 

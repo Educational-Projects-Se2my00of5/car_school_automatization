@@ -27,7 +27,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private void createDefaultManager() {
         String managerEmail = "manager@carschool.ru";
-        
+
         if (!userRepository.existsByEmail(managerEmail)) {
             User manager = User.builder()
                     .firstName("Администратор")
@@ -39,7 +39,7 @@ public class DataInitializer implements CommandLineRunner {
                     .role(Role.MANAGER)
                     .isActive(true)
                     .build();
-            
+
             userRepository.save(manager);
             log.debug("Создан пользователь по умолчанию: {} с ролью MANAGER", managerEmail);
         } else {

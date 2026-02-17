@@ -22,22 +22,22 @@ public class UserDto {
     public static class CreateUser {
         @NotNull(message = "Имя не может быть null")
         private String firstName;
-        
+
         @NotNull(message = "Фамилия не может быть null")
         private String lastName;
-        
+
         @NotNull(message = "Возраст не может быть null")
         private Integer age;
-        
+
         @NotNull(message = "Телефон не может быть null")
         private String phone;
-        
+
         @NotNull(message = "Email не может быть null")
         private String email;
-        
+
         @NotNull(message = "Пароль не может быть null")
         private String password;
-        
+
         @NotNull(message = "Роль не может быть null")
         private Role role;
     }
@@ -52,19 +52,19 @@ public class UserDto {
     public static class UpdateUser {
         @NotNull(message = "Имя не может быть null")
         private String firstName;
-        
+
         @NotNull(message = "Фамилия не может быть null")
         private String lastName;
-        
+
         @NotNull(message = "Возраст не может быть null")
         private Integer age;
-        
+
         @NotNull(message = "Телефон не может быть null")
         private String phone;
-        
+
         @NotNull(message = "Email не может быть null")
         private String email;
-        
+
         @NotNull(message = "Роль не может быть null")
         private Role role;
     }
@@ -97,7 +97,7 @@ public class UserDto {
     public static class ChangePassword {
         @NotNull(message = "Старый пароль не может быть null")
         private String oldPassword;
-        
+
         @NotNull(message = "Новый пароль не может быть null")
         private String newPassword;
     }
