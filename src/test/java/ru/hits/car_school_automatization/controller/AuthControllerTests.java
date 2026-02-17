@@ -6,17 +6,28 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import ru.hits.car_school_automatization.dto.AuthDto;
 import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.repository.UserRepository;
-
+import ru.hits.car_school_automatization.security.JwtTokenProvider;
+import ru.hits.car_school_automatization.service.AuthService;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-import static ru.hits.car_school_automatization.testdata.AuthTestData.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static ru.hits.car_school_automatization.testdata.AuthTestData.authHeader;
+import static ru.hits.car_school_automatization.testdata.AuthTestData.loginRequest;
 import static ru.hits.car_school_automatization.testdata.UserTestData.userEntity;
 
 /**
@@ -53,7 +64,7 @@ class AuthControllerTests {
         String passwordHash = "hash";
         Long userId = 1L;
         String generatedToken = "valid-jwt-token";
-        
+
         AuthDto.LoginRequest request = loginRequest(email, password);
         User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", email, passwordHash, Role.STUDENT, true);
 
@@ -83,7 +94,7 @@ class AuthControllerTests {
         String correctPasswordHash = "hash";
         String wrongPassword = "wrongPassword";
         Long userId = 1L;
-        
+
         AuthDto.LoginRequest request = loginRequest(email, wrongPassword);
         User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", email, correctPasswordHash, Role.STUDENT, true);
 
@@ -108,7 +119,7 @@ class AuthControllerTests {
         // Arrange
         String email = "nonexistent@test.ru";
         String password = "password123";
-        
+
         AuthDto.LoginRequest request = loginRequest(email, password);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
@@ -130,19 +141,20 @@ class AuthControllerTests {
     void refreshToken_withValidToken_shouldReturnNewToken() {
         // Arrange
         String oldToken = "old-valid-token";
+        String header = authHeader(oldToken);
         Long userId = 1L;
         String newToken = "new-refreshed-token";
-        
-        AuthDto.RefreshRequest request = refreshRequest(oldToken);
+
         User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", "test@test.ru", "hash", Role.STUDENT, true);
 
+        when(jwtTokenProvider.extractTokenFromHeader(header)).thenReturn(oldToken);
         when(jwtTokenProvider.validateToken(oldToken)).thenReturn(true);
         when(jwtTokenProvider.getUserIdFromToken(oldToken)).thenReturn(userId);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(jwtTokenProvider.generateToken(userId)).thenReturn(newToken);
 
         // Act
-        AuthDto.TokenResponse result = authController.refreshToken(request);
+        AuthDto.TokenResponse result = authController.refreshToken(header);
 
         // Assert
         assertAll(
@@ -151,6 +163,7 @@ class AuthControllerTests {
                 () -> assertNotEquals(oldToken, result.getToken())
         );
 
+        verify(jwtTokenProvider).extractTokenFromHeader(header);
         verify(jwtTokenProvider).validateToken(oldToken);
         verify(jwtTokenProvider).getUserIdFromToken(oldToken);
         verify(userRepository).findById(userId);
@@ -162,22 +175,22 @@ class AuthControllerTests {
     void refreshToken_withInvalidToken_shouldThrowBadRequestException() {
         // Arrange
         String invalidToken = "invalid-or-malformed-token";
-        
-        AuthDto.RefreshRequest request = refreshRequest(invalidToken);
+        String header = authHeader(invalidToken);
 
+        when(jwtTokenProvider.extractTokenFromHeader(header)).thenReturn(invalidToken);
         when(jwtTokenProvider.validateToken(invalidToken)).thenReturn(false);
 
         // Act & Assert
         BadRequestException exception = assertThrows(
                 BadRequestException.class,
-                () -> authController.refreshToken(request)
+                () -> authController.refreshToken(header)
         );
 
         assertEquals("Невалидный или истёкший токен", exception.getMessage());
+        verify(jwtTokenProvider).extractTokenFromHeader(header);
         verify(jwtTokenProvider).validateToken(invalidToken);
         verify(jwtTokenProvider, never()).getUserIdFromToken(anyString());
         verify(userRepository, never()).findById(any());
-        verify(jwtTokenProvider, times(1)).validateToken(invalidToken); // только validateToken
     }
 
     @Test
@@ -185,19 +198,42 @@ class AuthControllerTests {
     void refreshToken_withExpiredToken_shouldThrowBadRequestException() {
         // Arrange
         String expiredToken = "expired-token";
-        
-        AuthDto.RefreshRequest request = refreshRequest(expiredToken);
+        String header = authHeader(expiredToken);
 
+        when(jwtTokenProvider.extractTokenFromHeader(header)).thenReturn(expiredToken);
         when(jwtTokenProvider.validateToken(expiredToken)).thenReturn(false);
 
         // Act & Assert
         BadRequestException exception = assertThrows(
                 BadRequestException.class,
-                () -> authController.refreshToken(request)
+                () -> authController.refreshToken(header)
         );
 
         assertEquals("Невалидный или истёкший токен", exception.getMessage());
+        verify(jwtTokenProvider).extractTokenFromHeader(header);
         verify(jwtTokenProvider).validateToken(expiredToken);
+        verify(jwtTokenProvider, never()).getUserIdFromToken(anyString());
+        verify(userRepository, never()).findById(any());
+    }
+
+    @Test
+    @DisplayName("Обновление токена без префикса Bearer должно выбросить исключение")
+    void refreshToken_withoutBearerPrefix_shouldThrowBadRequestException() {
+        // Arrange
+        String headerWithoutBearer = "just-a-token";
+
+        when(jwtTokenProvider.extractTokenFromHeader(headerWithoutBearer))
+                .thenThrow(new BadRequestException("Невалидный заголовок Authorization"));
+
+        // Act & Assert
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> authController.refreshToken(headerWithoutBearer)
+        );
+
+        assertEquals("Невалидный заголовок Authorization", exception.getMessage());
+        verify(jwtTokenProvider).extractTokenFromHeader(headerWithoutBearer);
+        verify(jwtTokenProvider, never()).validateToken(anyString());
         verify(jwtTokenProvider, never()).getUserIdFromToken(anyString());
         verify(userRepository, never()).findById(any());
     }

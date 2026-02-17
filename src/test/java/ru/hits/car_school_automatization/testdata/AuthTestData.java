@@ -1,6 +1,8 @@
 package ru.hits.car_school_automatization.testdata;
 
 
+import ru.hits.car_school_automatization.dto.AuthDto;
+
 /**
  * Фабрика тестовых данных для аутентификации
  */
@@ -13,10 +15,8 @@ public class AuthTestData {
                 .build();
     }
 
-    public static AuthDto.RefreshRequest refreshRequest(String token) {
-        return AuthDto.RefreshRequest.builder()
-                .token(token)
-                .build();
+    public static String authHeader(String token) {
+        return "Bearer " + token;
     }
 
     public static AuthDto.TokenResponse tokenResponse(String token) {

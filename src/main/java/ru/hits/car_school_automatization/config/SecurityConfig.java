@@ -27,6 +27,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/users/*/change-password").authenticated()
                         .requestMatchers(HttpMethod.GET, "/users", "/users/**").hasAnyRole("TEACHER", "MANAGER")
                         // TODO нужно добавить /me эндпоинты, но после AuthController, так как требуется работа с токеном
+                        .requestMatchers("auth/**").permitAll()
 
                         .anyRequest().permitAll()
                 );

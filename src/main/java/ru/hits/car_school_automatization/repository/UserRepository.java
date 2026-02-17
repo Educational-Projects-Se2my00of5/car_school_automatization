@@ -4,6 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import ru.hits.car_school_automatization.entity.User;
 
+import java.util.Optional;
+
 /**
  * Репозиторий для работы с пользователями
  */
@@ -11,4 +13,6 @@ import ru.hits.car_school_automatization.entity.User;
 public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmail(String email);
+
+    Optional<User> findByEmail(String email);
 }
