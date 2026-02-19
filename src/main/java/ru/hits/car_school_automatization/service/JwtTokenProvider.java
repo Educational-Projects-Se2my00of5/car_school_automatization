@@ -7,6 +7,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import ru.hits.car_school_automatization.exception.BadRequestException;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
@@ -68,5 +69,15 @@ public class JwtTokenProvider {
                 .getPayload();
 
         return Long.parseLong(claims.getSubject());
+    }
+
+    /**
+     * Извлечение токена из заголовка Authorization
+     */
+    public String extractTokenFromHeader(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new BadRequestException("Невалидный заголовок Authorization");
+        }
+        return authHeader.substring(7);
     }
 }

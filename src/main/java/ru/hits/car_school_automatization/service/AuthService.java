@@ -7,7 +7,6 @@ import ru.hits.car_school_automatization.dto.AuthDto;
 import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.repository.UserRepository;
-import ru.hits.car_school_automatization.security.JwtTokenProvider;
 
 /**
  * Сервис для аутентификации

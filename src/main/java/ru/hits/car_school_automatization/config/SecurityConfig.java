@@ -29,7 +29,7 @@ public class SecurityConfig {
                         .requestMatchers("/users/change-password", "/users/profile").authenticated()
                         .requestMatchers(HttpMethod.GET, "/users", "/users/**").hasAnyRole("TEACHER", "MANAGER")
 
-                        .requestMatchers("auth/**").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
 
                         .anyRequest().permitAll()
                 );

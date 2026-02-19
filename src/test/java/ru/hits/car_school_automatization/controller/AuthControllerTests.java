@@ -11,7 +11,7 @@ import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.repository.UserRepository;
-import ru.hits.car_school_automatization.security.JwtTokenProvider;
+import ru.hits.car_school_automatization.service.JwtTokenProvider;
 import ru.hits.car_school_automatization.service.AuthService;
 
 import java.util.Optional;

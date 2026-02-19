@@ -10,7 +10,6 @@ import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.mapper.UserMapper;
 import ru.hits.car_school_automatization.repository.UserRepository;
-import ru.hits.car_school_automatization.security.JwtTokenProvider;
 
 import java.util.List;
 import java.util.stream.Collectors;
