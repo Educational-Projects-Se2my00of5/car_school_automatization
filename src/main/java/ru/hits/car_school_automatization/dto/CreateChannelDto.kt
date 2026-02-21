@@ -1,11 +1,9 @@
 package ru.hits.car_school_automatization.dto
 
-import java.util.UUID
-
 data class CreateChannelDto(
     val name: String,
     val description: String?,
-    val userIds: List<UUID>,
+    val userIds: List<Long>,
     val image: ByteArray?,
 ) {
     override fun equals(other: Any?): Boolean {

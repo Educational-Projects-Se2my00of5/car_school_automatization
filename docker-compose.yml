@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: car_school_automatization_backend
-    restart: unless-stopped
+    #restart: unless-stopped
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_db:5432/car_school_automatization_bd
     ports:

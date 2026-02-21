@@ -8,5 +8,4 @@ data class ChannelDto(
     val description: String?,
     val imageUrl: String?,
     val users: List<UserShortDto>
-
 )

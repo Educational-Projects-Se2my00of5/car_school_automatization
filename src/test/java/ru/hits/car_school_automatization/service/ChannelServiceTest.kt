@@ -1,9 +1,9 @@
 package ru.hits.car_school_automatization.service
 
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mapstruct.Mapper
-import org.mapstruct.factory.Mappers
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
@@ -11,18 +11,21 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
+import ru.hits.car_school_automatization.entity.Channel
 import ru.hits.car_school_automatization.entity.User
+import ru.hits.car_school_automatization.exception.BadRequestException
 import ru.hits.car_school_automatization.factory.ChannelFactory.createChannel
 import ru.hits.car_school_automatization.factory.ChannelFactory.createCreateChannelDto
-import ru.hits.car_school_automatization.mapper.ChannelMapper
+import ru.hits.car_school_automatization.factory.createUser
+import ru.hits.car_school_automatization.mapper.toChannelDto
 import ru.hits.car_school_automatization.repository.ChannelRepository
+import ru.hits.car_school_automatization.repository.UserRepository
 import java.util.UUID
 import java.util.UUID.randomUUID
 
 @DisplayName("Channel Service Tests")
 @ExtendWith(MockitoExtension::class)
 class ChannelServiceTest(
-    private val userMapper: ChannelMapper = Mappers.getMapper(ChannelMapper::class.java),
 ) {
     private val incorrectChannelId = randomUUID()
     private val channelId: UUID = randomUUID()
@@ -30,78 +33,118 @@ class ChannelServiceTest(
         on { getChannelById(channelId) } doReturn createChannel(channelId)
         on { getChannelById(incorrectChannelId) } doReturn null
 
-        on { delete(channelId) } doReturn Unit
-        on { delete(incorrectChannelId) } doReturn Unit
+        on { deleteById(channelId) } doReturn Unit
+        on { deleteById(incorrectChannelId) } doReturn Unit
 
-        on { create(any()) } doReturn channelId
+        on { save(any<Channel>()) } doAnswer { invocation -> invocation.getArgument(0) }
 
-        on { update(createChannel(incorrectChannelId)) } doReturn null
-        on { update(createChannel(channelId)) } doReturn channelId
+        on { getUserByChannelId(channelId) } doReturn (0..5).map { User() }
+        on { getUserByChannelId(incorrectChannelId) } doReturn listOf()
+
+        on { getUsersChannelByUserId(any<UUID>()) } doReturn (0..3).map { createChannel() }
+    }
+
+    private val userRepository = mock<UserRepository> {
+        on { getReferenceById(any<Long>()) } doReturn createUser()
+    }
+
+    private val channelService = ChannelService(channelRepository, userRepository)
+
+    @Test
+    fun `create channel with incorrect name`() {
+        val channelDto = createCreateChannelDto()
+
+        assertThrows<BadRequestException> {
+            channelService.createChanel(channelDto, 0L)
+        }
+
+        verifyNoInteractions(channelRepository)
+    }
+
+    @Test
+    fun `create channel with correct name`() {
+        val channelDto = createCreateChannelDto(name = "test22")
+        val creatorId = 0L
+        channelService.createChanel(channelDto, creatorId)
+
+        verify(channelRepository).save(any())
+    }
+
+    @Test
+    fun `delete a non-existent channel`() {
+        assertThrows<BadRequestException> {
+            channelService.deleteChanel(incorrectChannelId)
+        }
+
+        verify(channelRepository).getChannelById(incorrectChannelId)
+    }
+
+    @Test
+    fun `delete channel`() {
+        channelService.deleteChanel(channelId)
+
+        verify(channelRepository).deleteById(channelId)
+    }
+
+    @Test
+    fun `edit channel with incorrect name`() {
+        val (newName, newImage) = "" to null
+
+        assertThrows<BadRequestException> {
+            channelService.editChannel(newName, newImage, channelId)
+        }
+
+        verifyNoInteractions(channelRepository)
+    }
+
+    @Test
+    fun `edit channel with correct name`() {
+        val (newName, newImage) = "asdads" to null
+        channelService.editChannel(newName, newImage, channelId)
+
+        verify(channelRepository).save(any())
+    }
+
+    @Test
+    fun `get channel by id`() {
+        val channel = channelService.getChannelById(channelId)
+        assert(channel == createChannel(channelId).toChannelDto())
+
+        verify(channelRepository).getChannelById(channelId)
+    }
+
+    @Test
+    fun `get channel by incorrect id`() {
+
+        assertThrows<BadRequestException> {
+            channelService.getChannelById(incorrectChannelId)
+        }
+
+        verify(channelRepository).getChannelById(incorrectChannelId)
+    }
+
+
+    @Test
+    fun `get user channels`() {
+        val id = randomUUID()
+        channelService.getUserChannels(userId = id)
+
+        verify(channelRepository).getUsersChannelByUserId(id)
+    }
+}
+
+
+/*private val channelRepository = mock<ChannelRepository> {
+        on { getChannelById(channelId) } doReturn createChannel(channelId)
+        on { getChannelById(incorrectChannelId) } doReturn null
+
+        on { deleteById(channelId) } doReturn Unit
+        on { deleteById(incorrectChannelId) } doReturn Unit
+
+        on { save(any()) } doReturn any()
 
         on { getUserByChannelId(channelId) } doReturn (0..5).map { User() }
         on { getUserByChannelId(incorrectChannelId) } doReturn listOf()
 
         on { getUsersChannelByUserId(any()) } doReturn (0..3).map { createChannel() }
-    }
-
-    private val channelService = ChannelService(channelRepository)
-
-    fun `create channel with incorrect name`() {
-        val channelDto = createCreateChannelDto()
-        val id = channelService.createChanel()
-
-        assert(id == channelId)
-
-        verifyNoInteractions(channelRepository)
-    }
-
-    fun `create channel with correct name`() {
-        val channelDto = createCreateChannelDto()
-        val id = channelService.createChanel()
-
-        assert(id == channelId)
-
-        verify(channelRepository).create(userMapper.toEntity(channelDto))
-    }
-
-    fun `delete a non-existent channel`() {
-        channelService.deleteChanel(channelId)
-        verifyNoInteractions(channelRepository)
-    }
-
-    fun `delete channel`() {
-        channelService.deleteChanel(channelId)
-        verify(channelRepository).delete(channelId)
-    }
-
-    fun `edit channel with incorrect name`() {
-        val (newName, newImage) = "" to null
-        channelService.editChannel(newName, newImage, channelId)
-
-        verifyNoInteractions(channelRepository)
-    }
-
-    fun `edit channel with correct name`() {
-        val (newName, newImage) = "" to null
-        val id = channelService.editChannel(newName, newImage, channelId)
-
-        assert(id == channelId)
-
-        verify(channelRepository).update(any())
-    }
-
-    fun `get all users from channel`() {
-        val users = channelService.getAllUsers(channelId)
-        assert(users.size == 5)
-
-        verify(channelRepository).getChannelById(channelId)
-    }
-
-    fun `get all users from channel with incorrect id`() {
-        val users = channelService.getAllUsers(incorrectChannelId)
-        assert(users.size == 0)
-
-        verify(channelRepository).getChannelById(incorrectChannelId)
-    }
-
-}
+    }*/

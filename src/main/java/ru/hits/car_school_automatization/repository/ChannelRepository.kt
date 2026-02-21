@@ -12,12 +12,6 @@ interface ChannelRepository : JpaRepository<Channel, UUID> {
 
     fun getChannelById(id: UUID): Channel?
 
-    fun create(channel: Channel): UUID
-
-    fun update(channel: Channel): UUID?
-
-    fun delete(id: UUID)
-
     @Query("SELECT c FROM Channel c LEFT JOIN FETCH c.users WHERE c.id = :channelId")
     fun getUserByChannelId(chanelId: UUID): List<User>
 

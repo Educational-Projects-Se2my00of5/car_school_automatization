@@ -12,7 +12,7 @@ object ChannelFactory {
     fun createCreateChannelDto(
         name: String = "",
         description: String? = null,
-        userId: List<UUID> = listOf(),
+        userId: List<Long> = listOf(),
         image: ByteArray? = null,
     ) = CreateChannelDto(
         name = name,
@@ -37,11 +37,13 @@ object ChannelFactory {
         description: String? = null,
         image: String? = null,
         users: Set<User> = setOf(),
+        creator: User = createUser(),
     ) = Channel(
         id = id,
         label = label,
         description = description,
         image = image,
-        users = users
+        users = users,
+        creator = creator
     )
 }
