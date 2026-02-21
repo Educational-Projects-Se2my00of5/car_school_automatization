@@ -1,7 +1,12 @@
 spring:
+  servlet:
+    multipart:
+      max-request-size: 10MB
+      max-file-size: 10MB
   application:
     name: car_school_automatization
-  
+
+
   datasource:
     url: jdbc:postgresql://localhost:5432/car_school_automatization_bd
     username: postgres
@@ -14,3 +19,12 @@ spring:
 jwt:
   secret: eW91ci12ZXJ5LXNlY3JldC1rZXktdGhhdC1zaG91bGQtYmUtYXQtbGVhc3QtMjU2LWJpdHMtbG9uZy1mb3ItaHMyNTYtYWxnb3JpdGhtCg==
   expiration: 86400000
+
+file:
+  path: ./upload-dir
+
+logging:
+  level:
+    org:
+      springframework:
+        security=DEBUG:

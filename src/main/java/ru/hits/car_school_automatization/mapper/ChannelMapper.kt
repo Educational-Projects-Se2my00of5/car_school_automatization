@@ -6,7 +6,7 @@ import ru.hits.car_school_automatization.dto.ShortChannelDto
 import ru.hits.car_school_automatization.entity.Channel
 import ru.hits.car_school_automatization.entity.User
 
-fun CreateChannelDto.toEntity(creator: User, imagePath: String, users: Set<User>) = Channel(
+fun CreateChannelDto.toEntity(creator: User, imagePath: String?, users: Set<User>) = Channel(
     label = name,
     description = description,
     image = imagePath,

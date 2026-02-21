@@ -11,6 +11,7 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
+import ru.hits.car_school_automatization.dto.ChannelPatchDto
 import ru.hits.car_school_automatization.entity.Channel
 import ru.hits.car_school_automatization.entity.User
 import ru.hits.car_school_automatization.exception.BadRequestException
@@ -41,21 +42,31 @@ class ChannelServiceTest(
         on { getUserByChannelId(channelId) } doReturn (0..5).map { User() }
         on { getUserByChannelId(incorrectChannelId) } doReturn listOf()
 
-        on { getUsersChannelByUserId(any<UUID>()) } doReturn (0..3).map { createChannel() }
+        on { getUsersChannelByUserId(any<Long>()) } doReturn (0..3).map { createChannel() }
     }
 
     private val userRepository = mock<UserRepository> {
         on { getReferenceById(any<Long>()) } doReturn createUser()
     }
 
-    private val channelService = ChannelService(channelRepository, userRepository)
+    private val tokenProvider = mock<JwtTokenProvider>() {
+        on { getUserIdFromToken(any<String>()) } doReturn 0L
+        on { extractTokenFromHeader(any<String>()) } doReturn "token"
+        on { validateToken(any<String>()) } doReturn true
+    }
+
+    private val fileStorageService = mock<FileStorageService> {
+        on { store(any()) } doReturn "path"
+    }
+
+    private val channelService = ChannelService(channelRepository, userRepository, fileStorageService,tokenProvider)
 
     @Test
     fun `create channel with incorrect name`() {
         val channelDto = createCreateChannelDto()
 
         assertThrows<BadRequestException> {
-            channelService.createChanel(channelDto, 0L)
+            channelService.createChanel(channelDto, null,"")
         }
 
         verifyNoInteractions(channelRepository)
@@ -64,8 +75,8 @@ class ChannelServiceTest(
     @Test
     fun `create channel with correct name`() {
         val channelDto = createCreateChannelDto(name = "test22")
-        val creatorId = 0L
-        channelService.createChanel(channelDto, creatorId)
+        val header = ""
+        channelService.createChanel(channelDto, null,header)
 
         verify(channelRepository).save(any())
     }
@@ -88,10 +99,13 @@ class ChannelServiceTest(
 
     @Test
     fun `edit channel with incorrect name`() {
-        val (newName, newImage) = "" to null
+        val dto = ChannelPatchDto(
+            name = "",
+            image = null
+        )
 
         assertThrows<BadRequestException> {
-            channelService.editChannel(newName, newImage, channelId)
+            channelService.editChannel(dto, channelId)
         }
 
         verifyNoInteractions(channelRepository)
@@ -99,8 +113,11 @@ class ChannelServiceTest(
 
     @Test
     fun `edit channel with correct name`() {
-        val (newName, newImage) = "asdads" to null
-        channelService.editChannel(newName, newImage, channelId)
+        val dto = ChannelPatchDto(
+            name = "asdads",
+            image = null
+        )
+        channelService.editChannel(dto, channelId)
 
         verify(channelRepository).save(any())
     }
@@ -126,25 +143,9 @@ class ChannelServiceTest(
 
     @Test
     fun `get user channels`() {
-        val id = randomUUID()
+        val id = 0L
         channelService.getUserChannels(userId = id)
 
         verify(channelRepository).getUsersChannelByUserId(id)
     }
 }
-
-
-/*private val channelRepository = mock<ChannelRepository> {
-        on { getChannelById(channelId) } doReturn createChannel(channelId)
-        on { getChannelById(incorrectChannelId) } doReturn null
-
-        on { deleteById(channelId) } doReturn Unit
-        on { deleteById(incorrectChannelId) } doReturn Unit
-
-        on { save(any()) } doReturn any()
-
-        on { getUserByChannelId(channelId) } doReturn (0..5).map { User() }
-        on { getUserByChannelId(incorrectChannelId) } doReturn listOf()
-
-        on { getUsersChannelByUserId(any()) } doReturn (0..3).map { createChannel() }
-    }*/

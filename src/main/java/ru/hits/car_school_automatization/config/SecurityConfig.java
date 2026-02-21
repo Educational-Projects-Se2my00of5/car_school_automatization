@@ -23,7 +23,12 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/api-docs/**"
+                        ).permitAll()
                         // эндпоинты /users
                         .requestMatchers(HttpMethod.POST, "/users").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.PUT, "/users/**").hasRole("MANAGER")
@@ -37,9 +42,14 @@ public class SecurityConfig {
 
                         .requestMatchers("/auth/**").permitAll()
 
+                        .requestMatchers("/channel").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/channel/**").hasRole("MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/channel/**").hasRole("MANAGER")
+                        .requestMatchers(HttpMethod.GET, "/channel/**").hasRole("MANAGER")
+                        .requestMatchers(HttpMethod.DELETE, "/channel/**").hasRole("MANAGER")
                         .anyRequest().permitAll()
                 )
-                .addFilterBefore(jwtAuthFilter, BasicAuthenticationFilter.class);;
+                .addFilterBefore(jwtAuthFilter, BasicAuthenticationFilter.class);
 
         return http.build();
     }

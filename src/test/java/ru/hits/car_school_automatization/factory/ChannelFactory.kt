@@ -1,5 +1,6 @@
 package ru.hits.car_school_automatization.factory
 
+import org.springframework.web.multipart.MultipartFile
 import ru.hits.car_school_automatization.dto.CreateChannelDto
 import ru.hits.car_school_automatization.dto.ShortChannelDto
 import ru.hits.car_school_automatization.entity.Channel
@@ -13,7 +14,7 @@ object ChannelFactory {
         name: String = "",
         description: String? = null,
         userId: List<Long> = listOf(),
-        image: ByteArray? = null,
+        image: MultipartFile? = null,
     ) = CreateChannelDto(
         name = name,
         description = description,

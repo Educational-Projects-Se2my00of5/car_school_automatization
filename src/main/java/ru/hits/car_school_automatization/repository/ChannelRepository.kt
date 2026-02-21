@@ -16,5 +16,5 @@ interface ChannelRepository : JpaRepository<Channel, UUID> {
     fun getUserByChannelId(chanelId: UUID): List<User>
 
     @Query("SELECT c FROM Channel c JOIN c.users u WHERE u.id = :userId")
-    fun getUsersChannelByUserId(userId: UUID): List<Channel>
+    fun getUsersChannelByUserId(userId: Long): List<Channel>
 }

@@ -4,6 +4,8 @@ import ru.hits.car_school_automatization.dto.UserDto;
 import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.Role;
 
+import java.util.Collections;
+
 /**
  * Фабрика тестовых данных для User
  */
@@ -18,7 +20,7 @@ public class UserTestData {
                 .phone(phone)
                 .email(email)
                 .password(password)
-                .role(role)
+                .role(Collections.singletonList(role))
                 .build();
     }
 
@@ -30,7 +32,7 @@ public class UserTestData {
                 .age(age)
                 .phone(phone)
                 .email(email)
-                .role(role)
+                .role(Collections.singletonList(role))
                 .build();
     }
 
@@ -44,7 +46,7 @@ public class UserTestData {
                 .phone(phone)
                 .email(email)
                 .passwordHash(passwordHash)
-                .role(role)
+                .role(Collections.singletonList(role))
                 .isActive(isActive)
                 .build();
     }
@@ -58,7 +60,7 @@ public class UserTestData {
                 .age(age)
                 .phone(phone)
                 .email(email)
-                .role(role)
+                .role(Collections.singletonList(role))
                 .isActive(isActive)
                 .build();
     }
