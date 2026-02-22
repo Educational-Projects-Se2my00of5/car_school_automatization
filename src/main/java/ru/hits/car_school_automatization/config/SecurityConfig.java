@@ -9,7 +9,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
 import ru.hits.car_school_automatization.filter.JwtAuthFilter;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -21,6 +24,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http
+                .cors(cors -> cors.configurationSource(request -> {
+                    CorsConfiguration config = new CorsConfiguration();
+                    config.setAllowedOriginPatterns(List.of("*"));
+                    config.setAllowedMethods(List.of("*"));
+                    config.setAllowedHeaders(List.of("*"));
+                    config.setAllowCredentials(true);
+                    return config;
+                }))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
@@ -33,10 +44,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/users").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.PUT, "/users/**").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("MANAGER")
-                        .requestMatchers(
-                                HttpMethod.PATCH,
-                                "/users/*/deactivate", "/users/*/activate", "/users/*/change-role"
-                        ).hasRole("MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/users/*/deactivate", "/users/*/activate").hasRole("MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/users/*/add-role", "/users/*/remove-role").hasRole("MANAGER")
                         .requestMatchers("/users/change-password", "/users/profile").authenticated()
                         .requestMatchers(HttpMethod.GET, "/users", "/users/**").hasAnyRole("TEACHER", "MANAGER")
 
