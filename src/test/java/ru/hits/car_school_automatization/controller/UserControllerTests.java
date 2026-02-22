@@ -25,8 +25,10 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
@@ -73,11 +75,12 @@ class UserControllerTests {
             String phone, String email, String password, String roleString) {
         // Arrange
         Role role = Role.valueOf(roleString);
+        List<Role> roles = List.of(role);
         String passwordHash = "hash";
-        UserDto.CreateUser request = createUserRequest(firstName, lastName, age, phone, email, password, role);
-        User userToSave = userEntity(null, firstName, lastName, age, phone, email, passwordHash, role, true);
-        User savedUser = userEntity(1L, firstName, lastName, age, phone, email, passwordHash, role, true);
-        UserDto.FullInfo expected = userFullInfoDto(1L, firstName, lastName, age, phone, email, role, true);
+        UserDto.CreateUser request = createUserRequest(firstName, lastName, age, phone, email, password, roles);
+        User userToSave = userEntity(null, firstName, lastName, age, phone, email, passwordHash, roles, true);
+        User savedUser = userEntity(1L, firstName, lastName, age, phone, email, passwordHash, roles, true);
+        UserDto.FullInfo expected = userFullInfoDto(1L, firstName, lastName, age, phone, email, roles, true);
 
         when(passwordEncoder.encode(password)).thenReturn(passwordHash);
         when(userMapper.toEntity(request)).thenReturn(userToSave);
@@ -94,7 +97,7 @@ class UserControllerTests {
                 () -> assertEquals(firstName, result.getFirstName()),
                 () -> assertEquals(lastName, result.getLastName()),
                 () -> assertEquals(email, result.getEmail()),
-                () -> assertEquals(role, result.getRole()),
+                () -> assertEquals(roles, result.getRole()),
                 () -> assertEquals(age, result.getAge()),
                 () -> assertEquals(phone, result.getPhone())
         );
@@ -108,14 +111,14 @@ class UserControllerTests {
     @Test
     void getAllUsers() {
         // Arrange
-        User user1 = userEntity(1L, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, true);
-        User user2 = userEntity(2L, "Jane", "Smith", 25, "+79002223344", "jane@test.ru", "hash", Role.TEACHER, true);
-        User user3 = userEntity(3L, "Bob", "Johnson", 30, "+79003334455", "bob@test.ru", "hash", Role.MANAGER, true);
+        User user1 = userEntity(1L, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
+        User user2 = userEntity(2L, "Jane", "Smith", 25, "+79002223344", "jane@test.ru", "hash", List.of(Role.TEACHER), true);
+        User user3 = userEntity(3L, "Bob", "Johnson", 30, "+79003334455", "bob@test.ru", "hash", List.of(Role.MANAGER), true);
         List<User> userEntities = Arrays.asList(user1, user2, user3);
 
-        UserDto.FullInfo dto1 = userFullInfoDto(1L, "John", "Doe", 20, "+79001112233", "john@test.ru", Role.STUDENT, true);
-        UserDto.FullInfo dto2 = userFullInfoDto(2L, "Jane", "Smith", 25, "+79002223344", "jane@test.ru", Role.TEACHER, true);
-        UserDto.FullInfo dto3 = userFullInfoDto(3L, "Bob", "Johnson", 30, "+79003334455", "bob@test.ru", Role.MANAGER, true);
+        UserDto.FullInfo dto1 = userFullInfoDto(1L, "John", "Doe", 20, "+79001112233", "john@test.ru", List.of(Role.STUDENT), true);
+        UserDto.FullInfo dto2 = userFullInfoDto(2L, "Jane", "Smith", 25, "+79002223344", "jane@test.ru", List.of(Role.TEACHER), true);
+        UserDto.FullInfo dto3 = userFullInfoDto(3L, "Bob", "Johnson", 30, "+79003334455", "bob@test.ru", List.of(Role.MANAGER), true);
         List<UserDto.FullInfo> expectedDtos = Arrays.asList(dto1, dto2, dto3);
 
         when(userRepository.findAll()).thenReturn(userEntities);
@@ -143,8 +146,8 @@ class UserControllerTests {
     void getUserById() {
         // Arrange
         Long userId = 10L;
-        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, true);
-        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", Role.STUDENT, true);
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
+        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", List.of(Role.STUDENT), true);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userMapper.toDto(user)).thenReturn(expected);
@@ -187,12 +190,12 @@ class UserControllerTests {
         Long userId = 1L;
         UserDto.UpdateUser updateRequest = UserTestData.updateUserRequest(
                 "UpdatedName", "UpdatedLastName", 25,
-                "+79991112233", "updated@test.ru", Role.TEACHER
+                "+79991112233", "updated@test.ru", List.of(Role.TEACHER)
         );
 
-        User existingUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, true);
-        User updatedUser = userEntity(userId, "UpdatedName", "UpdatedLastName", 25, "+79991112233", "updated@test.ru", "hash", Role.TEACHER, true);
-        UserDto.FullInfo expected = userFullInfoDto(userId, "UpdatedName", "UpdatedLastName", 25, "+79991112233", "updated@test.ru", Role.TEACHER, true);
+        User existingUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
+        User updatedUser = userEntity(userId, "UpdatedName", "UpdatedLastName", 25, "+79991112233", "updated@test.ru", "hash", List.of(Role.TEACHER), true);
+        UserDto.FullInfo expected = userFullInfoDto(userId, "UpdatedName", "UpdatedLastName", 25, "+79991112233", "updated@test.ru", List.of(Role.TEACHER), true);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
         when(userRepository.save(existingUser)).thenReturn(updatedUser);
@@ -208,7 +211,7 @@ class UserControllerTests {
                 () -> assertEquals("UpdatedName", result.getFirstName()),
                 () -> assertEquals("UpdatedLastName", result.getLastName()),
                 () -> assertEquals("updated@test.ru", result.getEmail()),
-                () -> assertEquals(Role.TEACHER, result.getRole())
+                () -> assertEquals(List.of(Role.TEACHER), result.getRole())
         );
 
         verify(userRepository).findById(userId);
@@ -222,7 +225,7 @@ class UserControllerTests {
         Long nonExistentId = 999L;
         UserDto.UpdateUser updateRequest = UserTestData.updateUserRequest(
                 "UpdatedName", "UpdatedLastName", 25,
-                "+79991112233", "updated@test.ru", Role.TEACHER
+                "+79991112233", "updated@test.ru", List.of(Role.TEACHER)
         );
 
         when(userRepository.findById(nonExistentId)).thenReturn(Optional.empty());
@@ -241,7 +244,7 @@ class UserControllerTests {
     void deleteUser_shouldDeleteSuccessfully() {
         // Arrange
         Long userId = 1L;
-        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, true);
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -273,9 +276,9 @@ class UserControllerTests {
     void deactivateUser_shouldDeactivateSuccessfully() {
         // Arrange
         Long userId = 1L;
-        User activeUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, true);
-        User deactivatedUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, false);
-        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", Role.STUDENT, false);
+        User activeUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
+        User deactivatedUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), false);
+        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", List.of(Role.STUDENT), false);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
         when(userRepository.save(activeUser)).thenReturn(deactivatedUser);
@@ -317,9 +320,9 @@ class UserControllerTests {
     void activateUser_shouldActivateSuccessfully() {
         // Arrange
         Long userId = 1L;
-        User inactiveUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, false);
-        User activatedUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, true);
-        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", Role.STUDENT, true);
+        User inactiveUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), false);
+        User activatedUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
+        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", List.of(Role.STUDENT), true);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(inactiveUser));
         when(userRepository.save(inactiveUser)).thenReturn(activatedUser);
@@ -371,9 +374,9 @@ class UserControllerTests {
 
         UserDto.ChangePassword request = UserTestData.changePasswordRequest(oldPassword, newPassword);
 
-        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", oldPasswordHash, Role.STUDENT, true);
-        User updatedUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", newPasswordHash, Role.STUDENT, true);
-        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", Role.STUDENT, true);
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", oldPasswordHash, List.of(Role.STUDENT), true);
+        User updatedUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", newPasswordHash, List.of(Role.STUDENT), true);
+        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", List.of(Role.STUDENT), true);
 
         when(jwtTokenProvider.extractTokenFromHeader(authHeaderValue)).thenReturn(token);
         when(jwtTokenProvider.validateToken(token)).thenReturn(true);
@@ -440,7 +443,7 @@ class UserControllerTests {
 
         UserDto.ChangePassword request = UserTestData.changePasswordRequest(oldPassword, newPassword);
 
-        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", actualPasswordHash, Role.STUDENT, true);
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", actualPasswordHash, List.of(Role.STUDENT), true);
 
         when(jwtTokenProvider.extractTokenFromHeader(authHeaderValue)).thenReturn(token);
         when(jwtTokenProvider.validateToken(token)).thenReturn(true);
@@ -470,8 +473,8 @@ class UserControllerTests {
         String authHeaderValue = authHeader(token);
         Long userId = 1L;
 
-        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, true);
-        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", Role.STUDENT, true);
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
+        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", List.of(Role.STUDENT), true);
 
         when(jwtTokenProvider.extractTokenFromHeader(authHeaderValue)).thenReturn(token);
         when(jwtTokenProvider.validateToken(token)).thenReturn(true);
@@ -522,29 +525,31 @@ class UserControllerTests {
     }
 
     @Test
-    @DisplayName("Успешная смена роли пользователя")
-    void changeUserRole_withValidData_shouldChangeRoleSuccessfully() {
+    @DisplayName("Успешное добавление роли пользователю")
+    void addRole_withValidData_shouldAddRoleSuccessfully() {
         // Arrange
         Long userId = 1L;
-        Role newRole = Role.TEACHER;
-        UserDto.ChangeRole request = UserTestData.changeRoleRequest(newRole);
+        Role roleToAdd = Role.TEACHER;
+        UserDto.RoleOperation request = UserTestData.roleOperationRequest(roleToAdd);
 
-        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.STUDENT, true);
-        User updatedUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", Role.TEACHER, true);
-        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", Role.TEACHER, true);
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
+        User updatedUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT, Role.TEACHER), true);
+        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", List.of(Role.STUDENT, Role.TEACHER), true);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.save(user)).thenReturn(updatedUser);
         when(userMapper.toDto(updatedUser)).thenReturn(expected);
 
         // Act
-        UserDto.FullInfo result = userController.changeUserRole(userId, request);
+        UserDto.FullInfo result = userController.addRole(userId, request);
 
         // Assert
         assertAll(
                 () -> assertNotNull(result),
                 () -> assertEquals(userId, result.getId()),
-                () -> assertEquals(Role.TEACHER, result.getRole())
+                () -> assertTrue(result.getRole().contains(Role.STUDENT)),
+                () -> assertTrue(result.getRole().contains(Role.TEACHER)),
+                () -> assertEquals(2, result.getRole().size())
         );
 
         verify(userRepository).findById(userId);
@@ -553,18 +558,146 @@ class UserControllerTests {
     }
 
     @Test
-    @DisplayName("Смена роли несуществующего пользователя должна выбросить исключение")
-    void changeUserRole_whenUserNotFound_shouldThrowNotFoundException() {
+    @DisplayName("Добавление роли, которая уже есть у пользователя - роль не дублируется")
+    void addRole_whenRoleAlreadyExists_shouldNotDuplicateRole() {
+        // Arrange
+        Long userId = 1L;
+        Role existingRole = Role.STUDENT;
+        UserDto.RoleOperation request = UserTestData.roleOperationRequest(existingRole);
+
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
+        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", List.of(Role.STUDENT), true);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userMapper.toDto(user)).thenReturn(expected);
+
+        // Act
+        UserDto.FullInfo result = userController.addRole(userId, request);
+
+        // Assert
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(userId, result.getId()),
+                () -> assertTrue(result.getRole().contains(Role.STUDENT)),
+                () -> assertEquals(1, result.getRole().size())
+        );
+
+        verify(userRepository).findById(userId);
+        verify(userRepository, never()).save(any());
+        verify(userMapper).toDto(user);
+    }
+
+    @Test
+    @DisplayName("Добавление роли несуществующему пользователю должно выбросить исключение")
+    void addRole_whenUserNotFound_shouldThrowNotFoundException() {
         // Arrange
         Long nonExistentId = 999L;
-        UserDto.ChangeRole request = UserTestData.changeRoleRequest(Role.TEACHER);
+        UserDto.RoleOperation request = UserTestData.roleOperationRequest(Role.TEACHER);
 
         when(userRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
         // Act & Assert
         NotFoundException exception = assertThrows(
                 NotFoundException.class,
-                () -> userController.changeUserRole(nonExistentId, request)
+                () -> userController.addRole(nonExistentId, request)
+        );
+
+        assertEquals("Пользователь с id " + nonExistentId + " не найден", exception.getMessage());
+        verify(userRepository).findById(nonExistentId);
+    }
+
+    @Test
+    @DisplayName("Успешное удаление роли у пользователя")
+    void removeRole_withValidData_shouldRemoveRoleSuccessfully() {
+        // Arrange
+        Long userId = 1L;
+        Role roleToRemove = Role.TEACHER;
+        UserDto.RoleOperation request = UserTestData.roleOperationRequest(roleToRemove);
+
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT, Role.TEACHER), true);
+        User updatedUser = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
+        UserDto.FullInfo expected = userFullInfoDto(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", List.of(Role.STUDENT), true);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(updatedUser);
+        when(userMapper.toDto(updatedUser)).thenReturn(expected);
+
+        // Act
+        UserDto.FullInfo result = userController.removeRole(userId, request);
+
+        // Assert
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(userId, result.getId()),
+                () -> assertTrue(result.getRole().contains(Role.STUDENT)),
+                () -> assertFalse(result.getRole().contains(Role.TEACHER)),
+                () -> assertEquals(1, result.getRole().size())
+        );
+
+        verify(userRepository).findById(userId);
+        verify(userRepository).save(user);
+        verify(userMapper).toDto(updatedUser);
+    }
+
+    @Test
+    @DisplayName("Удаление роли, которой нет у пользователя - должно выбросить исключение")
+    void removeRole_whenRoleDoesNotExist_shouldThrowBadRequestException() {
+        // Arrange
+        Long userId = 1L;
+        Role roleToRemove = Role.TEACHER;
+        UserDto.RoleOperation request = UserTestData.roleOperationRequest(roleToRemove);
+
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // Act & Assert
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> userController.removeRole(userId, request)
+        );
+
+        assertEquals("У пользователя нет роли " + roleToRemove, exception.getMessage());
+        verify(userRepository).findById(userId);
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Удаление последней роли у пользователя должно выбросить исключение")
+    void removeRole_whenRemovingLastRole_shouldThrowBadRequestException() {
+        // Arrange
+        Long userId = 1L;
+        Role lastRole = Role.STUDENT;
+        UserDto.RoleOperation request = UserTestData.roleOperationRequest(lastRole);
+
+        User user = userEntity(userId, "John", "Doe", 20, "+79001112233", "john@test.ru", "hash", List.of(Role.STUDENT), true);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // Act & Assert
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> userController.removeRole(userId, request)
+        );
+
+        assertEquals("Невозможно удалить последнюю роль пользователя", exception.getMessage());
+        verify(userRepository).findById(userId);
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Удаление роли у несуществующего пользователя должно выбросить исключение")
+    void removeRole_whenUserNotFound_shouldThrowNotFoundException() {
+        // Arrange
+        Long nonExistentId = 999L;
+        UserDto.RoleOperation request = UserTestData.roleOperationRequest(Role.TEACHER);
+
+        when(userRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
+                () -> userController.removeRole(nonExistentId, request)
         );
 
         assertEquals("Пользователь с id " + nonExistentId + " не найден", exception.getMessage());
