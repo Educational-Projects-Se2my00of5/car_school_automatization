@@ -6,11 +6,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.hits.car_school_automatization.dto.UserDto;
 import ru.hits.car_school_automatization.entity.User;
+import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.mapper.UserMapper;
 import ru.hits.car_school_automatization.repository.UserRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -151,11 +153,47 @@ public class UserService {
     }
 
     /**
-     * Смена роли пользователя
+     * Добавление роли пользователю
      */
-    public UserDto.FullInfo changeUserRole(Long id, UserDto.ChangeRole dto) {
+    public UserDto.FullInfo addRole(Long id, UserDto.RoleOperation dto) {
         User user = findUserById(id);
-        user.setRole(dto.getRole());
+        
+        // Проверяем, есть ли уже такая роль
+        if (user.getRole().contains(dto.getRole())) {
+            // Роль уже есть, просто возвращаем текущее состояние без сохранения
+            return userMapper.toDto(user);
+        }
+        
+        // Добавляем новую роль
+        List<Role> updatedRoles = new ArrayList<>(user.getRole());
+        updatedRoles.add(dto.getRole());
+        user.setRole(updatedRoles);
+        
+        User updatedUser = userRepository.save(user);
+        return userMapper.toDto(updatedUser);
+    }
+
+    /**
+     * Удаление роли у пользователя
+     */
+    public UserDto.FullInfo removeRole(Long id, UserDto.RoleOperation dto) {
+        User user = findUserById(id);
+        
+        // Проверяем, есть ли роль у пользователя
+        if (!user.getRole().contains(dto.getRole())) {
+            throw new BadRequestException("У пользователя нет роли " + dto.getRole());
+        }
+        
+        // Проверяем, не последняя ли это роль
+        if (user.getRole().size() == 1) {
+            throw new BadRequestException("Невозможно удалить последнюю роль пользователя");
+        }
+        
+        // Удаляем роль
+        List<Role> updatedRoles = new ArrayList<>(user.getRole());
+        updatedRoles.remove(dto.getRole());
+        user.setRole(updatedRoles);
+        
         User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
     }

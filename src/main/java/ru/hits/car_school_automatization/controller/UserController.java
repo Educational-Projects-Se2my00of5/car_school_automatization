@@ -90,9 +90,15 @@ public class UserController {
         return userService.getProfile(authHeader);
     }
 
-    @Operation(summary = "Смена роли пользователя")
-    @PatchMapping("/{id}/change-role")
-    public UserDto.FullInfo changeUserRole(@PathVariable Long id, @Valid @RequestBody UserDto.ChangeRole dto) {
-        return userService.changeUserRole(id, dto);
+    @Operation(summary = "Добавление роли пользователю")
+    @PostMapping("/{id}/add-role")
+    public UserDto.FullInfo addRole(@PathVariable Long id, @Valid @RequestBody UserDto.RoleOperation dto) {
+        return userService.addRole(id, dto);
+    }
+
+    @Operation(summary = "Удаление роли у пользователя")
+    @PostMapping("/{id}/remove-role")
+    public UserDto.FullInfo removeRole(@PathVariable Long id, @Valid @RequestBody UserDto.RoleOperation dto) {
+        return userService.removeRole(id, dto);
     }
 }

@@ -9,6 +9,8 @@ import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.repository.UserRepository;
 
+import java.util.List;
+
 /**
  * Инициализатор данных при старте приложения
  */
@@ -36,7 +38,7 @@ public class DataInitializer implements CommandLineRunner {
                     .phone("+79999999999")
                     .email(managerEmail)
                     .passwordHash(passwordEncoder.encode("manager123"))
-                    .role(Role.MANAGER)
+                    .role(List.of(Role.MANAGER))
                     .isActive(true)
                     .build();
 
