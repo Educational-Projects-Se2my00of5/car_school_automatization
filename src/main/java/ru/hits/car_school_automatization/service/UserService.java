@@ -155,7 +155,7 @@ public class UserService {
      */
     public UserDto.FullInfo changeUserRole(Long id, UserDto.ChangeRole dto) {
         User user = findUserById(id);
-        user.setRole(dto.getRole());
+        user.setRole(List.of(dto.getRole()));
         User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
     }
