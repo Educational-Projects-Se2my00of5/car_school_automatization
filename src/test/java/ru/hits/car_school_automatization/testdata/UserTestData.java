@@ -12,7 +12,7 @@ import java.util.Collections;
 public class UserTestData {
 
     public static UserDto.CreateUser createUserRequest(String firstName, String lastName, Integer age,
-                                                       String phone, String email, String password, Role role) {
+                                                       String phone, String email, String password, List<Role> roles) {
         return UserDto.CreateUser.builder()
                 .firstName(firstName)
                 .lastName(lastName)
@@ -25,7 +25,7 @@ public class UserTestData {
     }
 
     public static UserDto.UpdateUser updateUserRequest(String firstName, String lastName, Integer age,
-                                                       String phone, String email, Role role) {
+                                                       String phone, String email, List<Role> roles) {
         return UserDto.UpdateUser.builder()
                 .firstName(firstName)
                 .lastName(lastName)
@@ -37,7 +37,7 @@ public class UserTestData {
     }
 
     public static User userEntity(Long id, String firstName, String lastName, Integer age,
-                                  String phone, String email, String passwordHash, Role role, Boolean isActive) {
+                                  String phone, String email, String passwordHash, List<Role> roles, Boolean isActive) {
         return User.builder()
                 .id(id)
                 .firstName(firstName)
@@ -52,7 +52,7 @@ public class UserTestData {
     }
 
     public static UserDto.FullInfo userFullInfoDto(Long id, String firstName, String lastName, Integer age,
-                                                   String phone, String email, Role role, Boolean isActive) {
+                                                   String phone, String email, List<Role> roles, Boolean isActive) {
         return UserDto.FullInfo.builder()
                 .id(id)
                 .firstName(firstName)
@@ -72,8 +72,8 @@ public class UserTestData {
                 .build();
     }
 
-    public static UserDto.ChangeRole changeRoleRequest(Role role) {
-        return UserDto.ChangeRole.builder()
+    public static UserDto.RoleOperation roleOperationRequest(Role role) {
+        return UserDto.RoleOperation.builder()
                 .role(role)
                 .build();
     }

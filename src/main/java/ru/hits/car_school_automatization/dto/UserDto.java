@@ -105,13 +105,13 @@ public class UserDto {
     }
 
     /**
-     * DTO для смены роли пользователя
+     * DTO для операций добавления/удаления роли
      */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ChangeRole {
+    public static class RoleOperation {
         @NotNull(message = "Роль не может быть null")
         private Role role;
     }

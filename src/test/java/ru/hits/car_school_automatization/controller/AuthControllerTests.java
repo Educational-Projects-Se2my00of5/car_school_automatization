@@ -14,6 +14,7 @@ import ru.hits.car_school_automatization.repository.UserRepository;
 import ru.hits.car_school_automatization.service.JwtTokenProvider;
 import ru.hits.car_school_automatization.service.AuthService;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -66,7 +67,7 @@ class AuthControllerTests {
         String generatedToken = "valid-jwt-token";
 
         AuthDto.LoginRequest request = loginRequest(email, password);
-        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", email, passwordHash, Role.STUDENT, true);
+        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", email, passwordHash, List.of(Role.STUDENT), true);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(password, passwordHash)).thenReturn(true);
@@ -96,7 +97,7 @@ class AuthControllerTests {
         Long userId = 1L;
 
         AuthDto.LoginRequest request = loginRequest(email, wrongPassword);
-        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", email, correctPasswordHash, Role.STUDENT, true);
+        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", email, correctPasswordHash, List.of(Role.STUDENT), true);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(wrongPassword, correctPasswordHash)).thenReturn(false);
@@ -145,7 +146,7 @@ class AuthControllerTests {
         Long userId = 1L;
         String newToken = "new-refreshed-token";
 
-        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", "test@test.ru", "hash", Role.STUDENT, true);
+        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", "test@test.ru", "hash", List.of(Role.STUDENT), true);
 
         when(jwtTokenProvider.extractTokenFromHeader(header)).thenReturn(oldToken);
         when(jwtTokenProvider.validateToken(oldToken)).thenReturn(true);
