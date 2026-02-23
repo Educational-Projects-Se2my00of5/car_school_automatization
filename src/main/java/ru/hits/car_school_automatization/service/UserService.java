@@ -5,14 +5,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.hits.car_school_automatization.dto.UserDto;
+import ru.hits.car_school_automatization.entity.Role;
 import ru.hits.car_school_automatization.entity.User;
-import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.mapper.UserMapper;
+import ru.hits.car_school_automatization.repository.RoleRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
@@ -64,14 +65,7 @@ public class UserService {
      */
     public UserDto.FullInfo updateUser(Long id, UserDto.UpdateUser dto) {
         User user = findUserById(id);
-
-        user.setFirstName(dto.getFirstName());
-        user.setLastName(dto.getLastName());
-        user.setAge(dto.getAge());
-        user.setPhone(dto.getPhone());
-        user.setEmail(dto.getEmail());
-        user.setRole(dto.getRole());
-
+        userMapper.updateEntity(user, dto);
         User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
     }
@@ -159,15 +153,17 @@ public class UserService {
         User user = findUserById(id);
         
         // Проверяем, есть ли уже такая роль
-        if (user.getRole().contains(dto.getRole())) {
+        boolean hasRole = user.getRoles().stream()
+                .anyMatch(r -> r.getName().equals(dto.getRoleName()));
+        
+        if (hasRole) {
             // Роль уже есть, просто возвращаем текущее состояние без сохранения
             return userMapper.toDto(user);
         }
         
         // Добавляем новую роль
-        List<Role> updatedRoles = new ArrayList<>(user.getRole());
-        updatedRoles.add(dto.getRole());
-        user.setRole(updatedRoles);
+        Role role = roleRepository.findByName(dto.getRoleName());
+        user.getRoles().add(role);
         
         User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
@@ -179,23 +175,38 @@ public class UserService {
     public UserDto.FullInfo removeRole(Long id, UserDto.RoleOperation dto) {
         User user = findUserById(id);
         
-        // Проверяем, есть ли роль у пользователя
-        if (!user.getRole().contains(dto.getRole())) {
-            throw new BadRequestException("У пользователя нет роли " + dto.getRole());
-        }
+        // Находим роль
+        Role roleToRemove = user.getRoles().stream()
+                .filter(r -> r.getName().equals(dto.getRoleName()))
+                .findFirst()
+                .orElseThrow(() -> new BadRequestException("У пользователя нет роли " + dto.getRoleName()));
         
         // Проверяем, не последняя ли это роль
-        if (user.getRole().size() == 1) {
+        if (user.getRoles().size() == 1) {
             throw new BadRequestException("Невозможно удалить последнюю роль пользователя");
         }
         
         // Удаляем роль
-        List<Role> updatedRoles = new ArrayList<>(user.getRole());
-        updatedRoles.remove(dto.getRole());
-        user.setRole(updatedRoles);
+        user.getRoles().remove(roleToRemove);
         
         User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
+    }
+
+    /**
+     * Поиск пользователей с фильтрацией
+     */
+    public List<UserDto.FullInfo> searchUsers(UserDto.SearchParams searchParams) {
+        String roleString = searchParams.getRoleName() != null ? searchParams.getRoleName().name() : null;
+        
+        List<User> users = userRepository.findByFilters(
+                searchParams.getName(),
+                searchParams.getEmail(),
+                roleString
+        );
+        return users.stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     private User findUserById(Long id) {

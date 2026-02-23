@@ -8,14 +8,14 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import ru.hits.car_school_automatization.dto.AuthDto;
 import ru.hits.car_school_automatization.entity.User;
-import ru.hits.car_school_automatization.enums.Role;
+import ru.hits.car_school_automatization.enums.RoleName;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.repository.UserRepository;
 import ru.hits.car_school_automatization.service.JwtTokenProvider;
 import ru.hits.car_school_automatization.service.AuthService;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static ru.hits.car_school_automatization.testdata.AuthTestData.authHeader;
 import static ru.hits.car_school_automatization.testdata.AuthTestData.loginRequest;
+import static ru.hits.car_school_automatization.testdata.UserTestData.roleEntity;
 import static ru.hits.car_school_automatization.testdata.UserTestData.userEntity;
 
 /**
@@ -67,7 +68,7 @@ class AuthControllerTests {
         String generatedToken = "valid-jwt-token";
 
         AuthDto.LoginRequest request = loginRequest(email, password);
-        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", email, passwordHash, List.of(Role.STUDENT), true);
+        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", email, passwordHash, Set.of(roleEntity(1L,RoleName.STUDENT)), true);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(password, passwordHash)).thenReturn(true);
@@ -97,7 +98,7 @@ class AuthControllerTests {
         Long userId = 1L;
 
         AuthDto.LoginRequest request = loginRequest(email, wrongPassword);
-        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", email, correctPasswordHash, List.of(Role.STUDENT), true);
+        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", email, correctPasswordHash, Set.of(roleEntity(1L,RoleName.STUDENT)), true);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(wrongPassword, correctPasswordHash)).thenReturn(false);
@@ -146,7 +147,7 @@ class AuthControllerTests {
         Long userId = 1L;
         String newToken = "new-refreshed-token";
 
-        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", "test@test.ru", "hash", List.of(Role.STUDENT), true);
+        User user = userEntity(userId, "Иван", "Иванов", 25, "+79001112233", "test@test.ru", "hash", Set.of(roleEntity(1L,RoleName.STUDENT)), true);
 
         when(jwtTokenProvider.extractTokenFromHeader(header)).thenReturn(oldToken);
         when(jwtTokenProvider.validateToken(oldToken)).thenReturn(true);

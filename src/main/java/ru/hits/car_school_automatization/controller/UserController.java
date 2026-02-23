@@ -44,6 +44,12 @@ public class UserController {
         return userService.getAllUsers();
     }
 
+    @Operation(summary = "Поиск пользователей с фильтрацией")
+    @PostMapping("/search")
+    public List<UserDto.FullInfo> searchUsers(@RequestBody UserDto.SearchParams searchParams) {
+        return userService.searchUsers(searchParams);
+    }
+
     @Operation(summary = "Получение пользователя по ID")
     @GetMapping("/{id}")
     public UserDto.FullInfo getUserById(@PathVariable Long id) {

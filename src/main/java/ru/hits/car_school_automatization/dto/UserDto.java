@@ -5,9 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.hits.car_school_automatization.enums.Role;
+import ru.hits.car_school_automatization.enums.RoleName;
 
-import java.util.List;
+import java.util.Set;
 
 /**
  * DTO для работы с пользователями
@@ -41,7 +41,7 @@ public class UserDto {
         private String password;
 
         @NotNull(message = "Роль не может быть null")
-        private List<Role> role;
+        private Set<RoleName> roleName;
     }
 
     /**
@@ -68,7 +68,7 @@ public class UserDto {
         private String email;
 
         @NotNull(message = "Роль не может быть null")
-        private List<Role> role;
+        private Set<RoleName> roleName;
     }
 
     /**
@@ -85,7 +85,7 @@ public class UserDto {
         private Integer age;
         private String phone;
         private String email;
-        private List<Role> role;
+        private Set<RoleName> roleName;
         private Boolean isActive;
     }
 
@@ -113,6 +113,18 @@ public class UserDto {
     @AllArgsConstructor
     public static class RoleOperation {
         @NotNull(message = "Роль не может быть null")
-        private Role role;
+        private RoleName roleName;
     }
-}
+
+    /**
+     * DTO для параметров поиска пользователей
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SearchParams {
+        private String name;
+        private String email;
+        private RoleName roleName;
+    }}

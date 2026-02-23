@@ -10,11 +10,8 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import ru.hits.car_school_automatization.enums.Role;
 
-import java.util.List;
 import java.util.Set;
-
 import java.util.Collection;
 
 /**
@@ -51,9 +48,13 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String passwordHash;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private List<Role> role;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "user_roles",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles;
 
     @Column(nullable = false)
     @Builder.Default
@@ -61,7 +62,7 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return role.stream().map(role1 -> new SimpleGrantedAuthority("ROLE_" + role1.name())).toList();
+        return roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().name())).toList();
     }
     @Override
     public @Nullable String getPassword() {
