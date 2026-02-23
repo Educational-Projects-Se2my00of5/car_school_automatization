@@ -3,6 +3,7 @@ package ru.hits.car_school_automatization.service
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
+import ru.hits.car_school_automatization.exception.BadRequestException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -19,7 +20,7 @@ class FileStorageService(
     }
 
     fun store(file: MultipartFile): String {
-        if (file.isEmpty) throw IllegalArgumentException("File is empty")
+        if (file.isEmpty) throw BadRequestException("File is empty")
         val originalFilename = file.originalFilename ?: "unknown"
         val extension = originalFilename.substringAfterLast('.', "").let {
             if (it.isBlank()) "" else ".$it"
@@ -29,7 +30,7 @@ class FileStorageService(
         file.inputStream.use { inputStream ->
             Files.copy(inputStream, targetLocation)
         }
-        return "http://localhost:8080/$filename"
+        return "http://localhost:8080/file/$filename"
     }
 
     fun loadAsResource(filename: String): Path? {
