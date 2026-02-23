@@ -703,4 +703,165 @@ class UserControllerTests {
         assertEquals("Пользователь с id " + nonExistentId + " не найден", exception.getMessage());
         verify(userRepository).findById(nonExistentId);
     }
+
+    @Test
+    @DisplayName("Поиск пользователей по имени или фамилии")
+    void searchUsers_byName_shouldReturnMatchingUsers() {
+        // Arrange
+        String searchName = "Иван";
+        UserDto.SearchParams searchParams = UserDto.SearchParams.builder()
+                .name(searchName)
+                .build();
+
+        User user1 = userEntity(1L, "Иван", "Петров", 25, "+79001111111", "ivan@test.ru", "hash", List.of(Role.STUDENT), true);
+        User user2 = userEntity(2L, "Петр", "Иванов", 30, "+79002222222", "petr@test.ru", "hash", List.of(Role.TEACHER), true);
+        List<User> users = List.of(user1, user2);
+
+        UserDto.FullInfo dto1 = userFullInfoDto(1L, "Иван", "Петров", 25, "+79001111111", "ivan@test.ru", List.of(Role.STUDENT), true);
+        UserDto.FullInfo dto2 = userFullInfoDto(2L, "Петр", "Иванов", 30, "+79002222222", "petr@test.ru", List.of(Role.TEACHER), true);
+
+        when(userRepository.findByFilters(searchName, null, null)).thenReturn(users);
+        when(userMapper.toDto(user1)).thenReturn(dto1);
+        when(userMapper.toDto(user2)).thenReturn(dto2);
+
+        // Act
+        List<UserDto.FullInfo> result = userController.searchUsers(searchParams);
+
+        // Assert
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(2, result.size()),
+                () -> assertTrue(result.get(0).getFirstName().contains("Иван") || result.get(0).getLastName().contains("Иван")),
+                () -> assertTrue(result.get(1).getFirstName().contains("Иван") || result.get(1).getLastName().contains("Иван"))
+        );
+
+        verify(userRepository).findByFilters(searchName, null, null);
+    }
+
+    @Test
+    @DisplayName("Поиск пользователей по email")
+    void searchUsers_byEmail_shouldReturnMatchingUsers() {
+        // Arrange
+        String email = "test@test.ru";
+        UserDto.SearchParams searchParams = UserDto.SearchParams.builder()
+                .email(email)
+                .build();
+
+        User user = userEntity(1L, "Иван", "Иванов", 25, "+79001111111", email, "hash", List.of(Role.STUDENT), true);
+        List<User> users = List.of(user);
+
+        UserDto.FullInfo dto = userFullInfoDto(1L, "Иван", "Иванов", 25, "+79001111111", email, List.of(Role.STUDENT), true);
+
+        when(userRepository.findByFilters(null, email, null)).thenReturn(users);
+        when(userMapper.toDto(user)).thenReturn(dto);
+
+        // Act
+        List<UserDto.FullInfo> result = userController.searchUsers(searchParams);
+
+        // Assert
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(1, result.size()),
+                () -> assertEquals(email, result.get(0).getEmail())
+        );
+
+        verify(userRepository).findByFilters(null, email, null);
+    }
+
+    @Test
+    @DisplayName("Фильтр пользователей по роли")
+    void searchUsers_byRole_shouldReturnMatchingUsers() {
+        // Arrange
+        Role role = Role.TEACHER;
+        UserDto.SearchParams searchParams = UserDto.SearchParams.builder()
+                .role(role)
+                .build();
+
+        User user1 = userEntity(1L, "Иван", "Иванов", 25, "+79001111111", "teacher1@test.ru", "hash", List.of(Role.TEACHER), true);
+        User user2 = userEntity(2L, "Петр", "Петров", 30, "+79002222222", "teacher2@test.ru", "hash", List.of(Role.TEACHER, Role.MANAGER), true);
+        List<User> users = List.of(user1, user2);
+
+        UserDto.FullInfo dto1 = userFullInfoDto(1L, "Иван", "Иванов", 25, "+79001111111", "teacher1@test.ru", List.of(Role.TEACHER), true);
+        UserDto.FullInfo dto2 = userFullInfoDto(2L, "Петр", "Петров", 30, "+79002222222", "teacher2@test.ru", List.of(Role.TEACHER, Role.MANAGER), true);
+
+        when(userRepository.findByFilters(null, null, role.name())).thenReturn(users);
+        when(userMapper.toDto(user1)).thenReturn(dto1);
+        when(userMapper.toDto(user2)).thenReturn(dto2);
+
+        // Act
+        List<UserDto.FullInfo> result = userController.searchUsers(searchParams);
+
+        // Assert
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(2, result.size()),
+                () -> assertTrue(result.get(0).getRole().contains(Role.TEACHER)),
+                () -> assertTrue(result.get(1).getRole().contains(Role.TEACHER))
+        );
+
+        verify(userRepository).findByFilters(null, null, role.name());
+    }
+
+    @Test
+    @DisplayName("Поиск пользователей с комбинацией фильтров")
+    void searchUsers_withMultipleFilters_shouldReturnMatchingUsers() {
+        // Arrange
+        String name = "Иван";
+        Role role = Role.STUDENT;
+        UserDto.SearchParams searchParams = UserDto.SearchParams.builder()
+                .name(name)
+                .role(role)
+                .build();
+
+        User user = userEntity(1L, "Иван", "Иванов", 25, "+79001111111", "ivan@test.ru", "hash", List.of(Role.STUDENT), true);
+        List<User> users = List.of(user);
+
+        UserDto.FullInfo dto = userFullInfoDto(1L, "Иван", "Иванов", 25, "+79001111111", "ivan@test.ru", List.of(Role.STUDENT), true);
+
+        when(userRepository.findByFilters(name, null, role.name())).thenReturn(users);
+        when(userMapper.toDto(user)).thenReturn(dto);
+
+        // Act
+        List<UserDto.FullInfo> result = userController.searchUsers(searchParams);
+
+        // Assert
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(1, result.size()),
+                () -> assertTrue(result.get(0).getFirstName().contains("Иван") || result.get(0).getLastName().contains("Иван")),
+                () -> assertTrue(result.get(0).getRole().contains(role))
+        );
+
+        verify(userRepository).findByFilters(name, null, role.name());
+    }
+
+    @Test
+    @DisplayName("Поиск пользователей без фильтров возвращает всех")
+    void searchUsers_withoutFilters_shouldReturnAllUsers() {
+        // Arrange
+        UserDto.SearchParams searchParams = UserDto.SearchParams.builder().build();
+
+        User user1 = userEntity(1L, "Иван", "Иванов", 25, "+79001111111", "user1@test.ru", "hash", List.of(Role.STUDENT), true);
+        User user2 = userEntity(2L, "Петр", "Петров", 30, "+79002222222", "user2@test.ru", "hash", List.of(Role.TEACHER), true);
+        List<User> users = List.of(user1, user2);
+
+        UserDto.FullInfo dto1 = userFullInfoDto(1L, "Иван", "Иванов", 25, "+79001111111", "user1@test.ru", List.of(Role.STUDENT), true);
+        UserDto.FullInfo dto2 = userFullInfoDto(2L, "Петр", "Петров", 30, "+79002222222", "user2@test.ru", List.of(Role.TEACHER), true);
+
+        when(userRepository.findByFilters(null, null, null)).thenReturn(users);
+        when(userMapper.toDto(user1)).thenReturn(dto1);
+        when(userMapper.toDto(user2)).thenReturn(dto2);
+
+        // Act
+        List<UserDto.FullInfo> result = userController.searchUsers(searchParams);
+
+        // Assert
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(2, result.size())
+        );
+
+        verify(userRepository).findByFilters(null, null, null);
+    }
 }
+
