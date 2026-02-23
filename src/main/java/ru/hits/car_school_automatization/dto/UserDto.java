@@ -115,4 +115,17 @@ public class UserDto {
         @NotNull(message = "Роль не может быть null")
         private Role role;
     }
+
+    /**
+     * DTO для параметров поиска пользователей
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SearchParams {
+        private String name;
+        private String email; 
+        private Role role; 
+    }
 }

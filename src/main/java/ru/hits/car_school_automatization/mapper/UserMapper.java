@@ -11,11 +11,8 @@ import ru.hits.car_school_automatization.entity.User;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "isActive", constant = "true")
     User toEntity(UserDto.CreateUser dto);
-
-
+    
     UserDto.FullInfo toDto(User user);
 }

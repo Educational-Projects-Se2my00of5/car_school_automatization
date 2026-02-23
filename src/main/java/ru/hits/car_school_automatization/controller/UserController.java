@@ -101,4 +101,10 @@ public class UserController {
     public UserDto.FullInfo removeRole(@PathVariable Long id, @Valid @RequestBody UserDto.RoleOperation dto) {
         return userService.removeRole(id, dto);
     }
+
+    @Operation(summary = "Поиск пользователей по фильтрам")
+    @PostMapping("/search")
+    public List<UserDto.FullInfo> searchUsers(@Valid @RequestBody UserDto.SearchParams searchParams) {
+        return userService.searchUsers(searchParams);
+    }
 }

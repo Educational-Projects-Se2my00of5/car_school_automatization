@@ -198,6 +198,24 @@ public class UserService {
         return userMapper.toDto(updatedUser);
     }
 
+    /**
+     * Поиск пользователей по фильтрам
+     */
+    @Transactional(readOnly = true)
+    public List<UserDto.FullInfo> searchUsers(UserDto.SearchParams searchParams) {
+        String roleStr = searchParams.getRole() != null ? searchParams.getRole().name() : null;
+        
+        List<User> users = userRepository.findByFilters(
+                searchParams.getName(),
+                searchParams.getEmail(),
+                roleStr
+        );
+        
+        return users.stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
     private User findUserById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
