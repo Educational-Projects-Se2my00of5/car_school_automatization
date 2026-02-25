@@ -42,4 +42,12 @@ public class Post {
 
     @Column(nullable = false)
     private Boolean needMark;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 }
