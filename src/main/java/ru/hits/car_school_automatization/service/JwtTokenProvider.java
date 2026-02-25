@@ -7,7 +7,11 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.exception.BadRequestException;
+import ru.hits.car_school_automatization.exception.NotFoundException;
+import ru.hits.car_school_automatization.repository.UserRepository;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
@@ -20,12 +24,15 @@ public class JwtTokenProvider {
 
     private final SecretKey secretKey;
     private final long validityInMilliseconds;
+    private final UserRepository userRepository;
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
-            @Value("${jwt.expiration}") long validityInMilliseconds) {
+            @Value("${jwt.expiration}") long validityInMilliseconds,
+            UserRepository userRepository) {
         this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
         this.validityInMilliseconds = validityInMilliseconds;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -34,9 +41,12 @@ public class JwtTokenProvider {
     public String generateToken(Long userId) {
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
 
         return Jwts.builder()
                 .subject(userId.toString())
+                .claim("role", user.getRole())
                 .issuedAt(now)
                 .expiration(validity)
                 .signWith(secretKey)
