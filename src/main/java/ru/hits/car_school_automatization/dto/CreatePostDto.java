@@ -34,9 +34,4 @@ public class CreatePostDto {
 
     @NotNull
     private String channelId;
-
-    @PrePersist
-    void setNeedMark() {
-        this.needMark = PostType.TASK.equals(this.type);
-    }
 }
