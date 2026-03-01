@@ -1,5 +1,6 @@
 package ru.hits.car_school_automatization.dto;
 
+import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,9 @@ public class PostDto {
     private String label;
     private String text;
     private PostType type;
+
+    @Nullable
     private LocalDateTime deadline;
+
     private Long authorId;
 }

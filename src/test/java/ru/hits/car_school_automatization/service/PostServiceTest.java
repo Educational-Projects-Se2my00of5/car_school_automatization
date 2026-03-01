@@ -10,17 +10,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import ru.hits.car_school_automatization.dto.CreatePostDto;
 import ru.hits.car_school_automatization.dto.PostDto;
 import ru.hits.car_school_automatization.dto.ShortPostDto;
+import ru.hits.car_school_automatization.entity.Channel;
 import ru.hits.car_school_automatization.entity.Post;
 import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.PostType;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
+import ru.hits.car_school_automatization.repository.ChannelRepository;
 import ru.hits.car_school_automatization.repository.PostRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -32,6 +35,9 @@ class PostServiceTest {
 
     @Mock
     private PostRepository postRepository;
+
+    @Mock
+    private ChannelRepository channelRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -65,7 +71,7 @@ class PostServiceTest {
         createPostDto = CreatePostDto.builder()
                 .label("Test Post")
                 .text("Test Content")
-                .type(PostType.LECTURE)
+                .type(PostType.NEWS)
                 .deadline(LocalDateTime.now().plusDays(7))
                 .authorId(authorId)
                 .needMark(true)
@@ -76,7 +82,7 @@ class PostServiceTest {
                 .id(postId)
                 .label("Test Post")
                 .text("Test Content")
-                .type(PostType.LECTURE)
+                .type(PostType.NEWS)
                 .deadline(LocalDateTime.now().plusDays(7))
                 .authorId(authorId)
                 .channelId(channelId)
@@ -88,6 +94,7 @@ class PostServiceTest {
     @DisplayName("Создание поста должно сохранять пост в БД")
     void createPost_ShouldSavePost() {
         String authHeader = "Bearer token";
+        when(channelRepository.findById(any())).thenReturn(Optional.of(new Channel(channelId, "label", "desc", null, Set.of(new User()), new User())));
         when(tokenProvider.extractTokenFromHeader(authHeader)).thenReturn("token");
         when(tokenProvider.validateToken("token")).thenReturn(true);
         when(tokenProvider.getUserIdFromToken("token")).thenReturn(authorId);
@@ -165,7 +172,7 @@ class PostServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getId()).isEqualTo(postId.toString());
         assertThat(result.get(0).getLabel()).isEqualTo("Test Post");
-        assertThat(result.get(0).getType()).isEqualTo(PostType.LECTURE);
+        assertThat(result.get(0).getType()).isEqualTo(PostType.NEWS);
     }
 
     @Test
@@ -178,7 +185,7 @@ class PostServiceTest {
         assertThat(result.getId()).isEqualTo(postId);
         assertThat(result.getLabel()).isEqualTo("Test Post");
         assertThat(result.getText()).isEqualTo("Test Content");
-        assertThat(result.getType()).isEqualTo(PostType.LECTURE);
+        assertThat(result.getType()).isEqualTo(PostType.NEWS);
     }
 
     @Test
@@ -212,15 +219,15 @@ class PostServiceTest {
                 .authorId(userId)
                 .build();
 
-        Post lecture = Post.builder()
+        Post news = Post.builder()
                 .id(UUID.randomUUID())
-                .label("Lecture")
-                .type(PostType.LECTURE)
+                .label("News")
+                .type(PostType.NEWS)
                 .channelId(channelId)
                 .authorId(userId)
                 .build();
 
-        List<Post> posts = List.of(task1, task2, lecture);
+        List<Post> posts = List.of(task1, task2, news);
         when(postRepository.findByChannelIdAndAuthorId(channelId, userId)).thenReturn(posts);
 
         List<ShortPostDto> result = postService.getUserTasks(userId, channelId.toString());
