@@ -56,6 +56,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/channel/**").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.GET, "/channel/**").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.DELETE, "/channel/**").hasRole("MANAGER")
+
+                        .requestMatchers("/posts").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/channel/**").hasRole("MANAGER")
+                        .requestMatchers(HttpMethod.GET, "/channel/**").hasAnyRole("MANAGER", "STUDENT")
+                        .requestMatchers(HttpMethod.DELETE, "/channel/**").hasRole("MANAGER")
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthFilter, BasicAuthenticationFilter.class);
