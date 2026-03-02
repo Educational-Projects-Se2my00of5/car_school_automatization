@@ -1,7 +1,6 @@
 package ru.hits.car_school_automatization.dto;
 
 import jakarta.annotation.Nullable;
-import jakarta.persistence.PrePersist;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,8 +27,6 @@ public class CreatePostDto {
     @Nullable
     private LocalDateTime deadline;
 
-    @NotNull
-    private Long authorId;
     private Boolean needMark;
 
     @NotNull

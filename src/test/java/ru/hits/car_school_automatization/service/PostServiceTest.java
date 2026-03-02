@@ -73,7 +73,6 @@ class PostServiceTest {
                 .text("Test Content")
                 .type(PostType.NEWS)
                 .deadline(LocalDateTime.now().plusDays(7))
-                .authorId(authorId)
                 .needMark(true)
                 .channelId(channelId.toString())
                 .build();
