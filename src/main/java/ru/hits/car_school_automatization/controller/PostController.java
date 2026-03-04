@@ -28,10 +28,9 @@ public class PostController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Создание нового поста")
     public void createPost(
-            @RequestPart("post") @Valid CreatePostDto createPostDto,
-            @RequestPart(value = "file", required = false) MultipartFile file,
+            @Valid @ModelAttribute CreatePostDto createPostDto,
             @RequestHeader("Authorization") String authHeader) {
-        postService.createPost(createPostDto, file, authHeader);
+        postService.createPost(createPostDto, authHeader);
     }
 
     @DeleteMapping("/{postId}")

@@ -44,13 +44,17 @@ public class PostService {
     /**
      * Создание нового поста
      */
-    public void createPost(CreatePostDto createPostDto, MultipartFile file, String authHeader) {
+    public void createPost(CreatePostDto createPostDto, String authHeader) {
         log.info("Создание нового поста: {}", createPostDto.getLabel());
 
         Long authorId = extractUserIdFromHeader(authHeader);
 
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + authorId + " не найден"));
+
+        if (!isTeacherOrManager(author)) {
+            throw new ForbiddenException("Только преподаватели и менеджеры могут создавать посты");
+        }
 
         UUID channelUuid;
         try {
@@ -73,11 +77,12 @@ public class PostService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
+        MultipartFile file = createPostDto.getFile();
         if (file != null && !file.isEmpty()) {
-            log.info("Файла нет или он пуст");
             String fileUrl = fileStorageService.store(file);
             post.setFileUrl(fileUrl);
             post.setFileName(file.getOriginalFilename());
+            log.info("Файл {} добавлен к посту", file.getOriginalFilename());
         }
 
         postRepository.save(post);
@@ -277,7 +282,7 @@ public class PostService {
         User teacher = null;
         if (solution.getTeacherId() != null) {
             teacher = userRepository.findById(solution.getStudentId())
-                    .orElseThrow(() -> new NotFoundException("Пользователь с id " + solution.getStudentId() + " не найден"));
+                    .orElseThrow(() -> new NotFoundException("Пользователь с id " + solution.getTeacherId() + " не найден"));
         }
 
         Post task = postRepository.findById(solution.getTaskId()).orElse(null);
