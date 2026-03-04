@@ -40,6 +40,12 @@ public class Post {
     @Column(name = "author_id", nullable = false)
     private Long authorId;
 
+    @Column(name = "file_url")
+    private String fileUrl;
+
+    @Column(name = "file_name")
+    private String fileName;
+
     @Column(nullable = false)
     private Boolean needMark;
 

@@ -4,7 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.CreatePostDto;
 import ru.hits.car_school_automatization.dto.PostDto;
 import ru.hits.car_school_automatization.dto.ShortPostDto;
@@ -14,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/posts")
+@RequestMapping("/api/posts")
 @RequiredArgsConstructor
 @Tag(name = "Посты", description = "Управление постами в каналах")
 public class PostController {
@@ -47,8 +49,27 @@ public class PostController {
 
     @GetMapping("/{postId}")
     @Operation(summary = "Получение поста по ID")
-    public PostDto getPostById(@PathVariable UUID postId) {
-        return postService.getPostById(postId);
+    public PostDto getPostById(@PathVariable UUID postId, @RequestHeader("Authorization") String authHeader) {
+        return postService.getPostById(postId, authHeader);
+    }
+
+    @PostMapping(value = "/{postId}/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Добавление файла к посту")
+    public void addFileToPost(
+            @PathVariable UUID postId,
+            @RequestPart("file") MultipartFile file,
+            @RequestHeader("Authorization") String authHeader) {
+        postService.addFileToPost(postId, file, authHeader);
+    }
+
+    @DeleteMapping("/{postId}/file")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Удаление файла из поста")
+    public void deleteFileFromPost(
+            @PathVariable UUID postId,
+            @RequestHeader("Authorization") String authHeader) {
+        postService.deleteFileFromPost(postId, authHeader);
     }
 
     @GetMapping("/tasks")

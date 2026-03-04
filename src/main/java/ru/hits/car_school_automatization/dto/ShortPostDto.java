@@ -12,6 +12,7 @@ import ru.hits.car_school_automatization.enums.PostType;
 @AllArgsConstructor
 public class ShortPostDto {
     private String id;
+    private String authorName;
     private String label;
     private PostType type;
 }
