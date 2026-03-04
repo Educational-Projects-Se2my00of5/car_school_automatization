@@ -32,7 +32,4 @@ public class CreatePostDto {
 
     @NotNull
     private String channelId;
-
-    @Nullable
-    private MultipartFile file;
 }

@@ -44,7 +44,7 @@ public class PostService {
     /**
      * Создание нового поста
      */
-    public void createPost(CreatePostDto createPostDto, String authHeader) {
+    public void createPost(CreatePostDto createPostDto, MultipartFile file, String authHeader) {
         log.info("Создание нового поста: {}", createPostDto.getLabel());
 
         Long authorId = extractUserIdFromHeader(authHeader);
@@ -72,6 +72,13 @@ public class PostService {
                 .needMark(createPostDto.getNeedMark())
                 .createdAt(LocalDateTime.now())
                 .build();
+
+        if (file != null && !file.isEmpty()) {
+            log.info("Файла нет или он пуст");
+            String fileUrl = fileStorageService.store(file);
+            post.setFileUrl(fileUrl);
+            post.setFileName(file.getOriginalFilename());
+        }
 
         postRepository.save(post);
         log.info("Пост успешно создан с id: {}", post.getId());
