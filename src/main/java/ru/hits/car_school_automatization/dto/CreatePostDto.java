@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.enums.PostType;
 
 import java.time.LocalDateTime;
@@ -31,4 +32,7 @@ public class CreatePostDto {
 
     @NotNull
     private String channelId;
+
+    @Nullable
+    private MultipartFile file;
 }
