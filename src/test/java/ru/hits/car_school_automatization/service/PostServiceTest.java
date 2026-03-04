@@ -103,6 +103,7 @@ class PostServiceTest {
     @DisplayName("Создание поста должно сохранять пост в БД")
     void createPost_ShouldSavePost() {
         String authHeader = "Bearer token";
+        MultipartFile file = null;
         when(channelRepository.findById(any())).thenReturn(Optional.of(new Channel(channelId, "label", "desc", null, Set.of(new User()), new User())));
         when(tokenProvider.extractTokenFromHeader(authHeader)).thenReturn("token");
         when(tokenProvider.validateToken("token")).thenReturn(true);
@@ -110,7 +111,7 @@ class PostServiceTest {
         when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
         when(postRepository.save(any(Post.class))).thenReturn(post);
 
-        postService.createPost(createPostDto, authHeader);
+        postService.createPost(createPostDto, file, authHeader);
 
         verify(postRepository, times(1)).save(any(Post.class));
     }
@@ -118,11 +119,12 @@ class PostServiceTest {
     @Test
     @DisplayName("Создание поста с невалидным токеном должно выбрасывать исключение")
     void createPost_WithInvalidToken_ShouldThrowException() {
+        MultipartFile file = null;
         String authHeader = "Bearer invalid";
         when(tokenProvider.extractTokenFromHeader(authHeader)).thenReturn("invalid");
         when(tokenProvider.validateToken("invalid")).thenReturn(false);
 
-        assertThatThrownBy(() -> postService.createPost(createPostDto, authHeader))
+        assertThatThrownBy(() -> postService.createPost(createPostDto, file, authHeader))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Невалидный или истёкший токен");
     }
@@ -131,12 +133,13 @@ class PostServiceTest {
     @DisplayName("Создание поста с несуществующим автором должно выбрасывать исключение")
     void createPost_WithNonExistingAuthor_ShouldThrowException() {
         String authHeader = "Bearer token";
+        MultipartFile file = null;
         when(tokenProvider.extractTokenFromHeader(authHeader)).thenReturn("token");
         when(tokenProvider.validateToken("token")).thenReturn(true);
         when(tokenProvider.getUserIdFromToken("token")).thenReturn(authorId);
         when(userRepository.findById(authorId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> postService.createPost(createPostDto, authHeader))
+        assertThatThrownBy(() -> postService.createPost(createPostDto, file, authHeader))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Пользователь с id " + authorId + " не найден");
     }
@@ -452,5 +455,48 @@ class PostServiceTest {
         assertThat(result.getAuthorName()).isEqualTo("John Doe");
 
         assertThat(result.getStudentSolution()).isNull();
+    }
+
+    @Test
+    @DisplayName("Создание задачи должно сохранять пост с типом TASK")
+    void createPost_WithTaskType_ShouldSaveTask() {
+        String authHeader = "Bearer token";
+        MultipartFile file = null;
+
+        CreatePostDto taskDto = CreatePostDto.builder()
+                .label("Test Task")
+                .text("Task Description")
+                .type(PostType.TASK)
+                .deadline(LocalDateTime.now().plusDays(7))
+                .needMark(true)
+                .channelId(channelId.toString())
+                .build();
+
+        Post taskPost = Post.builder()
+                .id(UUID.randomUUID())
+                .label("Test Task")
+                .text("Task Description")
+                .type(PostType.TASK)
+                .deadline(taskDto.getDeadline())
+                .authorId(authorId)
+                .channelId(channelId)
+                .needMark(true)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(channelRepository.findById(channelId)).thenReturn(Optional.of(new Channel(channelId, "label", "desc", null, Set.of(new User()), new User())));
+        when(tokenProvider.extractTokenFromHeader(authHeader)).thenReturn("token");
+        when(tokenProvider.validateToken("token")).thenReturn(true);
+        when(tokenProvider.getUserIdFromToken("token")).thenReturn(authorId);
+        when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(postRepository.save(any(Post.class))).thenReturn(taskPost);
+
+        postService.createPost(taskDto, file, authHeader);
+
+        verify(postRepository, times(1)).save(argThat(p ->
+                p.getType() == PostType.TASK &&
+                        p.getNeedMark() == true &&
+                        p.getLabel().equals("Test Task")
+        ));
     }
 }

@@ -2,6 +2,7 @@ package ru.hits.car_school_automatization.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,13 +24,14 @@ public class PostController {
 
     private final PostService postService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Создание нового поста")
     public void createPost(
-            @RequestBody CreatePostDto createPostDto,
+            @RequestPart("post") @Valid CreatePostDto createPostDto,
+            @RequestPart(value = "file", required = false) MultipartFile file,
             @RequestHeader("Authorization") String authHeader) {
-        postService.createPost(createPostDto, authHeader);
+        postService.createPost(createPostDto, file, authHeader);
     }
 
     @DeleteMapping("/{postId}")
