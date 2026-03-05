@@ -20,4 +20,6 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     @Query("SELECT p FROM Post p WHERE p.channelId = :channelId AND p.type = :type ORDER BY p.createdAt DESC")
     List<Post> findByChannelIdAndType(@Param("channelId") UUID channelId, @Param("type") PostType type);
+
+    List<Post> getPostById(UUID id);
 }
