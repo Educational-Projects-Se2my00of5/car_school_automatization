@@ -44,7 +44,7 @@ object ChannelFactory {
         label = label,
         description = description,
         image = image,
-        users = users,
+        users = users.toMutableSet(),
         creator = creator
     )
 }

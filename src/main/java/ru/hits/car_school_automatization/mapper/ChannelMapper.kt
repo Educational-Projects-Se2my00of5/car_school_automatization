@@ -10,7 +10,7 @@ fun CreateChannelDto.toEntity(creator: User, imagePath: String?, users: Set<User
     label = name,
     description = description,
     image = imagePath,
-    users = users,
+    users = users.toMutableSet(),
     creator = creator
 )
 

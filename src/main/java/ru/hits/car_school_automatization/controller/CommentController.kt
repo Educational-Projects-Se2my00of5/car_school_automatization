@@ -1,6 +1,7 @@
 package ru.hits.car_school_automatization.controller
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 import ru.hits.car_school_automatization.dto.CommentDto
@@ -23,7 +24,7 @@ class CommentController(
     @Operation(summary = "Создание комментариев")
     @PostMapping("post/{id}")
     fun createComment(
-        @RequestHeader("Authorization") authHeader: String,
+        @Parameter(hidden = true) @RequestHeader("Authorization") authHeader: String,
         @Valid @RequestBody comment: CreateCommentRequest,
         @PathVariable id: UUID
     ) {
@@ -34,7 +35,7 @@ class CommentController(
     @Operation(summary = "Редактирование комментариев")
     @PutMapping("/comment/{id}")
     fun editComment(
-        @RequestHeader("Authorization") authHeader: String,
+        @Parameter(hidden = true) @RequestHeader("Authorization") authHeader: String,
         @RequestBody comment: String,
         @PathVariable id: Int
     ) {
@@ -44,7 +45,10 @@ class CommentController(
 
     @Operation(summary = "Удаление комментариев")
     @DeleteMapping("/{id}")
-    fun deleteComment(@RequestHeader("Authorization") authHeader: String, @PathVariable id: Int) {
+    fun deleteComment(
+        @Parameter(hidden = true) @RequestHeader("Authorization") authHeader: String,
+        @PathVariable id: Int
+    ) {
         val userId = loadIdFromHeader(authHeader)
         commentService.deleteComment(userId, id)
     }
