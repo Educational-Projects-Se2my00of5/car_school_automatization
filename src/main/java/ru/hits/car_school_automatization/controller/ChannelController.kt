@@ -1,5 +1,6 @@
 package ru.hits.car_school_automatization.controller
 
+import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -20,6 +21,7 @@ open class ChannelController(
 ) {
 
     @PostMapping("/create", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @Operation(summary = "Creates new channel")
     @ResponseStatus(HttpStatus.CREATED)
     fun createChannel(
         @Valid dto: CreateChannelDto,
@@ -33,11 +35,13 @@ open class ChannelController(
     }
 
     @GetMapping("/user/{id}")
+    @Operation(summary = "Get user's channels by id")
     fun getChannelsByUserId(@PathVariable("id") id: Long): List<ShortChannelDto> {
         return channelService.getUserChannels(id)
     }
 
     @GetMapping
+    @Operation(summary = "Get all my channels")
     fun getChannels(
         @Parameter(hidden = true) @RequestHeader("Authorization") authHeader: String
     ): List<ShortChannelDto> {
@@ -45,20 +49,28 @@ open class ChannelController(
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get channel by id")
     fun getChannelById(@PathVariable("id") id: UUID): ChannelDto {
         return channelService.getChannelById(id)
     }
 
     @DeleteMapping("/delete/{id}")
+    @Operation(summary = "Delete channel by id")
     fun deleteChannel(@PathVariable("id") id: UUID) {
         channelService.deleteChanel(id)
     }
 
     @PatchMapping("/update/{id}", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @Operation(summary = "Update channel")
     fun updateChannel(
         @PathVariable("id") id: UUID,
         dto: ChannelPatchDto,
     ) {
         channelService.editChannel(dto, id)
+    }
+
+    @PostMapping("{channelId}/user/{id}")
+    fun addUserToChannel(@PathVariable("id") id: Long, @PathVariable channelId: UUID, @Parameter(hidden = true) @RequestHeader("Authorization") authHeader: String) {
+        channelService.addUserToChannel(id, channelId,authHeader)
     }
 }

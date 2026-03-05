@@ -6,7 +6,9 @@ import ru.hits.car_school_automatization.dto.ChannelDto
 import ru.hits.car_school_automatization.dto.ChannelPatchDto
 import ru.hits.car_school_automatization.dto.CreateChannelDto
 import ru.hits.car_school_automatization.dto.ShortChannelDto
+import ru.hits.car_school_automatization.enums.Role
 import ru.hits.car_school_automatization.exception.BadRequestException
+import ru.hits.car_school_automatization.exception.ForbiddenException
 import ru.hits.car_school_automatization.mapper.toChannelDto
 import ru.hits.car_school_automatization.mapper.toEntity
 import ru.hits.car_school_automatization.mapper.toShortChannelDto
@@ -96,5 +98,16 @@ open class ChannelService(
         }
 
         return tokenProvider.getUserIdFromToken(token)
+    }
+
+    fun addUserToChannel(userId: Long, channelId: UUID, header: String) {
+        val actorId = loadIdFromHeader(header)
+        val actor = userRepository.findById(actorId).orElseThrow { BadRequestException("User not found") }
+        if (!actor.role.contains(Role.MANAGER)) {
+            throw ForbiddenException("User not allowed to add users")
+        }
+        val user = userRepository.findById(userId).orElseThrow { BadRequestException("User not found") }
+        val channel = channelRepository.findById(channelId).orElseThrow { BadRequestException("Channel not found") }
+        channel.users.add(user)
     }
 }

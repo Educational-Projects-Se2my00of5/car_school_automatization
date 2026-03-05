@@ -9,18 +9,23 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
+import org.mockito.kotlin.whenever
 import ru.hits.car_school_automatization.dto.ChannelPatchDto
 import ru.hits.car_school_automatization.entity.Channel
 import ru.hits.car_school_automatization.entity.User
+import ru.hits.car_school_automatization.enums.Role
 import ru.hits.car_school_automatization.exception.BadRequestException
+import ru.hits.car_school_automatization.exception.ForbiddenException
 import ru.hits.car_school_automatization.factory.ChannelFactory.createChannel
 import ru.hits.car_school_automatization.factory.ChannelFactory.createCreateChannelDto
 import ru.hits.car_school_automatization.factory.createUser
 import ru.hits.car_school_automatization.mapper.toChannelDto
 import ru.hits.car_school_automatization.repository.ChannelRepository
 import ru.hits.car_school_automatization.repository.UserRepository
+import java.util.Optional
 import java.util.UUID
 import java.util.UUID.randomUUID
 
@@ -59,14 +64,14 @@ class ChannelServiceTest(
         on { store(any()) } doReturn "path"
     }
 
-    private val channelService = ChannelService(channelRepository, userRepository, fileStorageService,tokenProvider)
+    private val channelService = ChannelService(channelRepository, userRepository, fileStorageService, tokenProvider)
 
     @Test
     fun `create channel with incorrect name`() {
         val channelDto = createCreateChannelDto()
 
         assertThrows<BadRequestException> {
-            channelService.createChanel(channelDto, null,"")
+            channelService.createChanel(channelDto, null, "")
         }
 
         verifyNoInteractions(channelRepository)
@@ -76,7 +81,7 @@ class ChannelServiceTest(
     fun `create channel with correct name`() {
         val channelDto = createCreateChannelDto(name = "test22")
         val header = ""
-        channelService.createChanel(channelDto, null,header)
+        channelService.createChanel(channelDto, null, header)
 
         verify(channelRepository).save(any())
     }
@@ -147,5 +152,129 @@ class ChannelServiceTest(
         channelService.getUserChannels(userId = id)
 
         verify(channelRepository).getUsersChannelByUserId(id)
+    }
+
+    @Test
+    fun `addUserToChannel should add user when actor is manager and user and channel exist`() {
+        val actorId = 1L
+        val userId = 2L
+        val channelId = this.channelId
+        val header = "Bearer token"
+
+        whenever(tokenProvider.extractTokenFromHeader(header)).thenReturn("token")
+        whenever(tokenProvider.getUserIdFromToken("token")).thenReturn(actorId)
+
+        val actor = User().apply {
+            id = actorId
+            role = mutableListOf(Role.MANAGER)
+        }
+        val userToAdd = User().apply {
+            id = userId
+        }
+        val channel = createChannel(channelId).apply {
+            users = mutableSetOf()
+        }
+
+        whenever(userRepository.findById(actorId)).thenReturn(Optional.of(actor))
+        whenever(userRepository.findById(userId)).thenReturn(Optional.of(userToAdd))
+        whenever(channelRepository.findById(channelId)).thenReturn(Optional.of(channel))
+
+        channelService.addUserToChannel(userId, channelId, header)
+
+        assert(channel.users.contains(userToAdd))
+        verify(channelRepository, never()).save(any())
+        verify(userRepository, never()).save(any())
+    }
+
+    @Test
+    fun `addUserToChannel should throw BadRequestException when actor not found`() {
+        val actorId = 1L
+        val userId = 2L
+        val channelId = this.channelId
+        val header = "Bearer token"
+
+        whenever(tokenProvider.extractTokenFromHeader(header)).thenReturn("token")
+        whenever(tokenProvider.getUserIdFromToken("token")).thenReturn(actorId)
+
+        whenever(userRepository.findById(actorId)).thenReturn(Optional.empty())
+
+        assertThrows<BadRequestException> {
+            channelService.addUserToChannel(userId, channelId, header)
+        }
+
+        verify(userRepository, never()).findById(userId)
+        verify(channelRepository, never()).findById(any())
+    }
+
+    @Test
+    fun `addUserToChannel should throw ForbiddenException when actor is not manager`() {
+        val actorId = 1L
+        val userId = 2L
+        val channelId = this.channelId
+        val header = "Bearer token"
+        val actor = User().apply {
+            id = actorId
+            role = mutableListOf(Role.STUDENT)
+        }
+
+        whenever(tokenProvider.extractTokenFromHeader(header)).thenReturn("token")
+        whenever(tokenProvider.getUserIdFromToken("token")).thenReturn(actorId)
+        whenever(userRepository.findById(actorId)).thenReturn(Optional.of(actor))
+
+        assertThrows<ForbiddenException> {
+            channelService.addUserToChannel(userId, channelId, header)
+        }
+
+        verify(userRepository, never()).findById(userId)
+        verify(channelRepository, never()).findById(any())
+    }
+
+    @Test
+    fun `addUserToChannel should throw BadRequestException when user to add not found`() {
+        val actorId = 1L
+        val userId = 2L
+        val channelId = this.channelId
+        val header = "Bearer token"
+        val actor = createUser().apply {
+
+            id = actorId
+            role = mutableListOf(Role.MANAGER)
+        }
+
+        whenever(tokenProvider.extractTokenFromHeader(header)).thenReturn("token")
+        whenever(tokenProvider.getUserIdFromToken("token")).thenReturn(actorId)
+        whenever(userRepository.findById(actorId)).thenReturn(Optional.of(actor))
+        whenever(userRepository.findById(userId)).thenReturn(Optional.empty())
+
+        assertThrows<BadRequestException> {
+            channelService.addUserToChannel(userId, channelId, header)
+        }
+
+        verify(channelRepository, never()).findById(any())
+    }
+
+    @Test
+    fun `addUserToChannel should throw BadRequestException when channel not found`() {
+        val actorId = 1L
+        val userId = 2L
+        val channelId = this.incorrectChannelId
+        val header = "Bearer token"
+        val actor = User().apply {
+            id = actorId
+            role = mutableListOf(Role.MANAGER)
+        }
+        val userToAdd = User().apply {
+            id = userId
+        }
+
+        whenever(tokenProvider.extractTokenFromHeader(header)).thenReturn("token")
+        whenever(tokenProvider.getUserIdFromToken("token")).thenReturn(actorId)
+        whenever(userRepository.findById(actorId)).thenReturn(Optional.of(actor))
+        whenever(userRepository.findById(userId)).thenReturn(Optional.of(userToAdd))
+        whenever(channelRepository.findById(channelId)).thenReturn(Optional.empty())
+
+        assertThrows<BadRequestException> {
+            channelService.addUserToChannel(userId, channelId, header)
+        }
     }
 }

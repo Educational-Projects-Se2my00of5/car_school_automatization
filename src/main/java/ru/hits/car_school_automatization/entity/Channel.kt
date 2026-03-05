@@ -25,7 +25,7 @@ data class Channel(
         joinColumns = [(JoinColumn(name = "channel_user_id", referencedColumnName = "id"))],
         inverseJoinColumns = [(JoinColumn(name = "user_id", referencedColumnName = "id"))]
     )
-    val users: Set<User>,
+    var users: MutableSet<User>,
     @ManyToOne(fetch = FetchType.LAZY)
     val creator: User,
 )
