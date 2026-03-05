@@ -113,16 +113,15 @@ public class SolutionService {
             solution.setText(updateDto.getText());
         }
 
+        if (solution.getFileUrl() != null) {
+            String oldFilename = extractFilenameFromUrl(solution.getFileUrl());
+            if (oldFilename != null) {
+                fileStorageService.delete(oldFilename);
+            }
+        }
+
         // Обновляем файл
         if (updateDto.getFile() != null && !updateDto.getFile().isEmpty()) {
-            // Удаляем старый файл
-            if (solution.getFileUrl() != null) {
-                String oldFilename = extractFilenameFromUrl(solution.getFileUrl());
-                if (oldFilename != null) {
-                    fileStorageService.delete(oldFilename);
-                }
-            }
-
             String fileUrl = fileStorageService.store(updateDto.getFile());
             solution.setFileUrl(fileUrl);
             solution.setFileName(updateDto.getFile().getOriginalFilename());
