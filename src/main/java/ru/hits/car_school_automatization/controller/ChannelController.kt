@@ -4,24 +4,14 @@ import io.swagger.v3.oas.annotations.Parameter
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PatchMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestHeader
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestPart
-import org.springframework.web.bind.annotation.ResponseStatus
-import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.multipart.MultipartFile
+import org.springframework.web.bind.annotation.*
 import ru.hits.car_school_automatization.dto.ChannelDto
 import ru.hits.car_school_automatization.dto.ChannelPatchDto
 import ru.hits.car_school_automatization.dto.CreateChannelDto
 import ru.hits.car_school_automatization.dto.ShortChannelDto
 import ru.hits.car_school_automatization.service.ChannelService
 import ru.hits.car_school_automatization.validator.validateImage
-import java.util.UUID
+import java.util.*
 
 @RestController
 @RequestMapping("/channel")
@@ -38,6 +28,7 @@ open class ChannelController(
         dto.image?.let {
             validateImage(it)
         }
+        print(authHeader)
         channelService.createChanel(dto, dto.image, authHeader)
     }
 
@@ -50,7 +41,6 @@ open class ChannelController(
     fun getChannels(
         @Parameter(hidden = true) @RequestHeader("Authorization") authHeader: String
     ): List<ShortChannelDto> {
-        print(authHeader)
         return channelService.getUserChannels(authHeader)
     }
 
@@ -69,8 +59,6 @@ open class ChannelController(
         @PathVariable("id") id: UUID,
         dto: ChannelPatchDto,
     ) {
-
-
         channelService.editChannel(dto, id)
     }
 }
