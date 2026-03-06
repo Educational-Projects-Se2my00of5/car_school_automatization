@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.*;
 import ru.hits.car_school_automatization.entity.Post;
 import ru.hits.car_school_automatization.entity.Solution;
@@ -118,13 +119,15 @@ public class SolutionService {
             if (oldFilename != null) {
                 fileStorageService.delete(oldFilename);
             }
+            solution.setFileUrl(null);
+            solution.setFileName(null);
         }
 
-        // Обновляем файл
-        if (updateDto.getFile() != null && !updateDto.getFile().isEmpty()) {
-            String fileUrl = fileStorageService.store(updateDto.getFile());
+        MultipartFile newFile = updateDto.getFile();
+        if (newFile != null && !newFile.isEmpty()) {
+            String fileUrl = fileStorageService.store(newFile);
             solution.setFileUrl(fileUrl);
-            solution.setFileName(updateDto.getFile().getOriginalFilename());
+            solution.setFileName(newFile.getOriginalFilename());
         }
 
         Solution updatedSolution = solutionRepository.save(solution);
