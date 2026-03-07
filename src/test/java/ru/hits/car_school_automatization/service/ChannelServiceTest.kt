@@ -182,7 +182,7 @@ class ChannelServiceTest(
         channelService.addUserToChannel(userId, channelId, header)
 
         assert(channel.users.contains(userToAdd))
-        verify(channelRepository, never()).save(any())
+        verify(channelRepository).save(any())
         verify(userRepository, never()).save(any())
     }
 
