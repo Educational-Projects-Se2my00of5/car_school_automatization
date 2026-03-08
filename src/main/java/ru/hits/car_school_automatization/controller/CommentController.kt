@@ -6,6 +6,7 @@ import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 import ru.hits.car_school_automatization.dto.CommentDto
 import ru.hits.car_school_automatization.dto.CreateCommentRequest
+import ru.hits.car_school_automatization.dto.EditCommentDto
 import ru.hits.car_school_automatization.dto.toCommentDto
 import ru.hits.car_school_automatization.exception.BadRequestException
 import ru.hits.car_school_automatization.mapper.UserMapper
@@ -33,14 +34,14 @@ class CommentController(
     }
 
     @Operation(summary = "Редактирование комментариев")
-    @PutMapping("/comment/{id}")
+    @PutMapping("/{id}")
     fun editComment(
         @Parameter(hidden = true) @RequestHeader("Authorization") authHeader: String,
-        @RequestBody comment: String,
+        @Valid @RequestBody comment: EditCommentDto,
         @PathVariable id: Int
     ) {
         val userId = loadIdFromHeader(authHeader)
-        commentService.updateComment(userId, comment, id)
+        commentService.updateComment(userId, comment.text, id)
     }
 
     @Operation(summary = "Удаление комментариев")

@@ -109,5 +109,6 @@ open class ChannelService(
         val user = userRepository.findById(userId).orElseThrow { BadRequestException("User not found") }
         val channel = channelRepository.findById(channelId).orElseThrow { BadRequestException("Channel not found") }
         channel.users.add(user)
+        channelRepository.save(channel)
     }
 }
