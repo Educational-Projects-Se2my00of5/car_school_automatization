@@ -15,4 +15,5 @@ public class ShortPostDto {
     private String authorName;
     private String label;
     private PostType type;
+    private Integer totalComments;
 }

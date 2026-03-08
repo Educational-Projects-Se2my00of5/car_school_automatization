@@ -19,10 +19,7 @@ import ru.hits.car_school_automatization.enums.PostType;
 import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
-import ru.hits.car_school_automatization.repository.ChannelRepository;
-import ru.hits.car_school_automatization.repository.PostRepository;
-import ru.hits.car_school_automatization.repository.SolutionRepository;
-import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.repository.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +33,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PostServiceTest {
+
+    @Mock
+    private CommentRepository commentRepository;
 
     @Mock
     private SolutionRepository solutionRepository;
@@ -495,5 +495,39 @@ class PostServiceTest {
                         p.getNeedMark() == true &&
                         p.getLabel().equals("Test Task")
         ));
+    }
+
+    @Test
+    void getPostsByChannelId_ShouldReturnTotalComments() {
+        List<Post> posts = List.of(post);
+        Integer commentsCount = 5;
+
+        when(postRepository.findByChannelIdOrderByCreatedAtDesc(channelId)).thenReturn(posts);
+        when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(commentRepository.countByPostId(postId)).thenReturn(commentsCount);
+
+        List<ShortPostDto> result = postService.getPostsByChannelId(channelId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(postId.toString());
+        assertThat(result.get(0).getLabel()).isEqualTo("Test Post");
+        assertThat(result.get(0).getType()).isEqualTo(PostType.NEWS);
+        assertThat(result.get(0).getTotalComments()).isEqualTo(commentsCount);
+    }
+
+    @Test
+    void getPostsByChannelId_WithNoComments_ShouldReturnZeroComments() {
+        List<Post> posts = List.of(post);
+        Integer commentsCount = 0;
+
+        when(postRepository.findByChannelIdOrderByCreatedAtDesc(channelId)).thenReturn(posts);
+        when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(commentRepository.countByPostId(postId)).thenReturn(commentsCount);
+
+        List<ShortPostDto> result = postService.getPostsByChannelId(channelId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(postId.toString());
+        assertThat(result.get(0).getTotalComments()).isEqualTo(0);
     }
 }

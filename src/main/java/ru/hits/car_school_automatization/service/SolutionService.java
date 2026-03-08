@@ -152,11 +152,6 @@ public class SolutionService {
         Solution solution = solutionRepository.findById(gradeDto.getSolutionId())
                 .orElseThrow(() -> new NotFoundException("Решение с id " + gradeDto.getSolutionId() + " не найдено"));
 
-        // Проверяем, не оценено ли уже
-        if (solution.getMark() != null) {
-            throw new BadRequestException("Решение уже оценено");
-        }
-
         // Валидация оценки
         validateMark(gradeDto.getMark());
 

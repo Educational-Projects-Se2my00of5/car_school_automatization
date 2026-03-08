@@ -260,17 +260,33 @@ class SolutionServiceTest {
     }
 
     @Test
-    void updateSolution_AlreadyGraded_ThrowsException() {
-        solution.setMark(5);
+    void gradeSolution_ShouldUpdateMark() {
+        String authHeader = "Bearer token";
+        Long teacherId = 2L;
 
-        when(tokenProvider.extractTokenFromHeader(authHeader)).thenReturn(token);
-        when(tokenProvider.validateToken(token)).thenReturn(true);
-        when(tokenProvider.getUserIdFromToken(token)).thenReturn(studentId);
-        when(solutionRepository.findById(solutionId)).thenReturn(Optional.of(solution));
+        UUID solutionId = UUID.randomUUID();
+        Solution solution = Solution.builder()
+                .id(solutionId)
+                .studentId(1L)
+                .mark(3)
+                .text("Solution text")
+                .build();
 
-        assertThrows(BadRequestException.class, () ->
-                solutionService.updateSolution(solutionId, updateSolutionDto, authHeader)
-        );
+        when(tokenProvider.extractTokenFromHeader(authHeader)).thenReturn("token");
+        when(tokenProvider.validateToken("token")).thenReturn(true);
+        when(tokenProvider.getUserIdFromToken("token")).thenReturn(teacherId);
+        when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
+        when(solutionRepository.findById(any())).thenReturn(Optional.of(solution));
+        when(postRepository.findById(any())).thenReturn(Optional.of(Post.builder().label("Task").build()));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(User.builder().firstName("Student").lastName("User").build()));
+        when(solutionRepository.save(any(Solution.class))).thenAnswer(i -> i.getArgument(0));
+
+        SolutionDto result = solutionService.gradeSolution(gradeSolutionDto, authHeader);
+
+        assertEquals(5, result.getMark());
+        verify(solutionRepository, times(1)).save(argThat(s ->
+                s.getMark() == 5 && s.getTeacherId().equals(teacherId)
+        ));
     }
 
     @Test
@@ -305,21 +321,6 @@ class SolutionServiceTest {
         when(userRepository.findById(studentId)).thenReturn(Optional.of(studentUser));
 
         assertThrows(ForbiddenException.class, () ->
-                solutionService.gradeSolution(gradeSolutionDto, authHeader)
-        );
-    }
-
-    @Test
-    void gradeSolution_AlreadyGraded_ThrowsException() {
-        solution.setMark(4);
-
-        when(tokenProvider.extractTokenFromHeader(authHeader)).thenReturn(token);
-        when(tokenProvider.validateToken(token)).thenReturn(true);
-        when(tokenProvider.getUserIdFromToken(token)).thenReturn(teacherId);
-        when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
-        when(solutionRepository.findById(solutionId)).thenReturn(Optional.of(solution));
-
-        assertThrows(BadRequestException.class, () ->
                 solutionService.gradeSolution(gradeSolutionDto, authHeader)
         );
     }
