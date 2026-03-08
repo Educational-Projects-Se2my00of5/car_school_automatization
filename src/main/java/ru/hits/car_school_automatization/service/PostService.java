@@ -18,10 +18,7 @@ import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
-import ru.hits.car_school_automatization.repository.ChannelRepository;
-import ru.hits.car_school_automatization.repository.PostRepository;
-import ru.hits.car_school_automatization.repository.SolutionRepository;
-import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.repository.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,6 +31,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class PostService {
 
+    private final CommentRepository commentRepository;
     private final ChannelRepository channelRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
@@ -251,11 +249,14 @@ public class PostService {
      * Маппинг Post в ShortPostDto
      */
     private ShortPostDto mapToShortPostDto(Post post, String fullName) {
+        var commentsCount = commentRepository.countByPostId(post.getId());
+
         return ShortPostDto.builder()
                 .id(post.getId().toString())
                 .authorName(fullName)
                 .label(post.getLabel())
                 .type(post.getType())
+                .totalComments(commentsCount)
                 .build();
     }
 
