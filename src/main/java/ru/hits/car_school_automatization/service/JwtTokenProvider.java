@@ -90,4 +90,12 @@ public class JwtTokenProvider {
         }
         return authHeader.substring(7);
     }
+
+    public Long extractUserIdFromHeader(String authHeader) {
+        String token = extractTokenFromHeader(authHeader);
+        if (!validateToken(token)) {
+            throw new BadRequestException("Невалидный или истекший токен");
+        }
+        return getUserIdFromToken(token);
+    }
 }
