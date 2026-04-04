@@ -7,8 +7,8 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import ru.hits.car_school_automatization.dto.TeamDto;
 import ru.hits.car_school_automatization.dto.UpdateTeamDto;
+import ru.hits.car_school_automatization.dto.UserShortDto;
 import ru.hits.car_school_automatization.entity.Team;
-import ru.hits.car_school_automatization.entity.User;
 
 import java.util.List;
 import java.util.Set;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public interface TeamMapper {
 
     @Mapping(target = "taskId", source = "task.id")
-    @Mapping(target = "userIds", expression = "java(mapUserIds(team))")
+    @Mapping(target = "users", expression = "java(mapUsers(team))")
     TeamDto toDto(Team team);
 
     List<TeamDto> toDtoList(List<Team> teams);
@@ -29,12 +29,12 @@ public interface TeamMapper {
     @Mapping(target = "users", ignore = true)
     void updateTeamFromDto(UpdateTeamDto dto, @MappingTarget Team team);
 
-    default Set<Long> mapUserIds(Team team) {
+    default Set<UserShortDto> mapUsers(Team team) {
         if (team.getUsers() == null) {
             return Set.of();
         }
         return team.getUsers().stream()
-                .map(User::getId)
+                .map(UserMapperKt::toShort)
                 .collect(Collectors.toSet());
     }
 }

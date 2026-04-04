@@ -24,5 +24,5 @@ public class TeamDto {
     private Float mark;
     private Instant deadline;
     private Instant softDeadline;
-    private Set<Long> userIds;
+    private Set<UserShortDto> users;
 }

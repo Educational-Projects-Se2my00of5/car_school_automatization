@@ -24,7 +24,7 @@ public class TeamController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Создание команды")
+    @Operation(summary = "Создание команды (TEACHER)")
     public TeamDto createTeam(
             @Valid @RequestBody CreateTeamDto dto,
             @RequestHeader("Authorization") String authHeader) {
@@ -33,7 +33,7 @@ public class TeamController {
 
     @PatchMapping("/{teamId}")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Обновление команды")
+    @Operation(summary = "Обновление команды (TEACHER)")
     public TeamDto updateTeam(
             @PathVariable UUID teamId,
             @RequestBody UpdateTeamDto dto,
@@ -43,21 +43,21 @@ public class TeamController {
 
     @GetMapping("/{teamId}")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Получение команды по id")
+    @Operation(summary = "Получение команды по id (Any)")
     public TeamDto getTeam(@PathVariable UUID teamId) {
         return teamService.getTeam(teamId);
     }
 
     @GetMapping("/task/{taskId}")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Получение всех команд задания")
+    @Operation(summary = "Получение всех команд задания (Any)")
     public List<TeamDto> getTaskTeams(@PathVariable UUID taskId) {
         return teamService.getTaskTeams(taskId);
     }
 
     @PostMapping("/{teamId}/members/{userId}")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Добавить участника в команду")
+    @Operation(summary = "Добавить участника в команду (TEACHER)")
     public TeamDto addMember(
             @PathVariable UUID teamId,
             @PathVariable Long userId,
@@ -67,7 +67,7 @@ public class TeamController {
 
     @DeleteMapping("/{teamId}/members/{userId}")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Удалить участника из команды")
+    @Operation(summary = "Удалить участника из команды (TEACHER)")
     public TeamDto removeMember(
             @PathVariable UUID teamId,
             @PathVariable Long userId,
@@ -77,7 +77,7 @@ public class TeamController {
 
     @PostMapping("/{teamId}/join")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Студент вступает в команду")
+    @Operation(summary = "Студент вступает в команду (STUDENT)")
     public TeamDto joinTeam(
             @PathVariable UUID teamId,
             @RequestHeader("Authorization") String authHeader) {
@@ -86,7 +86,7 @@ public class TeamController {
 
     @DeleteMapping("/{teamId}/leave")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Студент выходит из команды")
+    @Operation(summary = "Студент выходит из команды (STUDENT)")
     public TeamDto leaveTeam(
             @PathVariable UUID teamId,
             @RequestHeader("Authorization") String authHeader) {
@@ -95,7 +95,7 @@ public class TeamController {
 
     @DeleteMapping("/{teamId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Удаление команды")
+    @Operation(summary = "Удаление команды (TEACHER)")
     public void deleteTeam(
             @PathVariable UUID teamId,
             @RequestHeader("Authorization") String authHeader) {
