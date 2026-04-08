@@ -23,5 +23,7 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "channel", ignore = true)
     @Mapping(target = "teams", ignore = true)
+    @Mapping(target = "startAt", ignore = true)
+    @Mapping(target = "documents", ignore = true)
     void updateTaskFromDto(UpdateTaskDto dto, @MappingTarget Task task);
 }

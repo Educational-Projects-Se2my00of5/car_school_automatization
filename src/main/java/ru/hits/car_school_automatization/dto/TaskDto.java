@@ -21,7 +21,7 @@ public class TaskDto {
     private String text;
     private UUID channelId;
     private Instant startAt;
-    private List<String> documents;
+    private List<TaskDocumentDto> documents;
     private TeamType teamType;
     private TaskType type;
     private Boolean isCanRedistribute;
