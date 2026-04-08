@@ -7,11 +7,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.CreateTaskDto;
 import ru.hits.car_school_automatization.dto.TaskDto;
 import ru.hits.car_school_automatization.dto.UpdateTaskDto;
 import ru.hits.car_school_automatization.entity.Channel;
 import ru.hits.car_school_automatization.entity.Task;
+import ru.hits.car_school_automatization.entity.TaskDocument;
 import ru.hits.car_school_automatization.entity.Team;
 import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.Role;
@@ -33,9 +35,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -67,6 +70,9 @@ class TaskServiceTest {
 
     @Mock
     private TeamFormationService teamFormationService;
+
+    @Mock
+    private FileStorageService fileStorageService;
 
     @InjectMocks
     private TaskService taskService;
@@ -101,16 +107,16 @@ class TaskServiceTest {
         );
 
         existingTask = Task.builder()
-            .id(taskId)
-            .label("Task")
-            .text("Text")
-            .channel(channel)
-            .documents(new ArrayList<>())
-            .teamType(TeamType.FREE)
-            .type(TaskType.FREE)
-            .minTeamSize(2)
-            .isCanRedistribute(false)
-            .build();
+                .id(taskId)
+                .label("Task")
+                .text("Text")
+                .channel(channel)
+                .documents(new ArrayList<>())
+                .teamType(TeamType.FREE)
+                .type(TaskType.FREE)
+                .minTeamSize(2)
+                .isCanRedistribute(false)
+                .build();
     }
 
     @Test
@@ -405,5 +411,96 @@ class TaskServiceTest {
         when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
 
         assertThrows(ForbiddenException.class, () -> taskService.copyTask(taskId, targetChannelId, authHeader));
+    }
+
+    @Test
+    @DisplayName("addDocument: добавляет файл в документы задачи")
+    void addDocument_ShouldAppendDocument() {
+        MultipartFile file = org.mockito.Mockito.mock(MultipartFile.class);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(teacherId);
+        when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getOriginalFilename()).thenReturn("doc.pdf");
+        when(fileStorageService.store(file)).thenReturn("http://localhost:8080/file/uuid.pdf");
+        when(taskRepository.save(existingTask)).thenReturn(existingTask);
+        when(taskMapper.toDto(existingTask)).thenReturn(TaskDto.builder().id(taskId).build());
+
+        TaskDto result = taskService.addDocument(taskId, file, authHeader);
+
+        assertNotNull(result);
+        assertEquals(1, existingTask.getDocuments().size());
+        assertEquals("doc.pdf", existingTask.getDocuments().get(0).getFileName());
+        assertEquals("http://localhost:8080/file/uuid.pdf", existingTask.getDocuments().get(0).getFileUrl());
+        verify(fileStorageService).store(file);
+        verify(taskRepository).save(existingTask);
+    }
+
+    @Test
+    @DisplayName("removeDocument: удаляет документ и физический файл")
+    void removeDocument_ShouldDeletePhysicalFileAndSave() {
+        existingTask.setDocuments(new ArrayList<>(List.of(
+                TaskDocument.builder().fileName("doc.pdf").fileUrl("http://localhost:8080/file/uuid.pdf").build()
+        )));
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(teacherId);
+        when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
+        when(taskRepository.save(existingTask)).thenReturn(existingTask);
+        when(taskMapper.toDto(existingTask)).thenReturn(TaskDto.builder().id(taskId).build());
+
+        TaskDto result = taskService.removeDocument(taskId, "http://localhost:8080/file/uuid.pdf", authHeader);
+
+        assertNotNull(result);
+        assertTrue(existingTask.getDocuments().isEmpty());
+        verify(fileStorageService).delete("uuid.pdf");
+        verify(taskRepository).save(existingTask);
+    }
+
+    @Test
+    @DisplayName("updateTask: при передаче documents заменяет старые документы и удаляет старые файлы")
+    void updateTask_WithDocuments_ShouldReplaceAndDeleteOld() {
+        MultipartFile newFile = org.mockito.Mockito.mock(MultipartFile.class);
+        existingTask.setDocuments(new ArrayList<>(List.of(
+                TaskDocument.builder().fileName("old.pdf").fileUrl("http://localhost:8080/file/old.pdf").build()
+        )));
+
+        UpdateTaskDto dto = UpdateTaskDto.builder().documents(List.of(newFile)).build();
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(teacherId);
+        when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
+        when(newFile.isEmpty()).thenReturn(false);
+        when(newFile.getOriginalFilename()).thenReturn("new.pdf");
+        when(fileStorageService.store(newFile)).thenReturn("http://localhost:8080/file/new.pdf");
+        when(taskRepository.save(existingTask)).thenReturn(existingTask);
+        when(taskMapper.toDto(existingTask)).thenReturn(TaskDto.builder().id(taskId).build());
+
+        TaskDto result = taskService.updateTask(taskId, dto, authHeader);
+
+        assertNotNull(result);
+        assertEquals(1, existingTask.getDocuments().size());
+        assertEquals("new.pdf", existingTask.getDocuments().get(0).getFileName());
+        verify(fileStorageService).delete("old.pdf");
+        verify(fileStorageService).store(newFile);
+    }
+
+    @Test
+    @DisplayName("deleteTask: удаляет физические файлы документов перед удалением задачи")
+    void deleteTask_WithDocuments_ShouldDeletePhysicalFiles() {
+        existingTask.setDocuments(new ArrayList<>(List.of(
+                TaskDocument.builder().fileName("a.pdf").fileUrl("http://localhost:8080/file/a.pdf").build(),
+                TaskDocument.builder().fileName("b.pdf").fileUrl("http://localhost:8080/file/b.pdf").build()
+        )));
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(teacherId);
+        when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
+
+        taskService.deleteTask(taskId, authHeader);
+
+        verify(fileStorageService).delete("a.pdf");
+        verify(fileStorageService).delete("b.pdf");
+        verify(taskRepository).delete(existingTask);
     }
 }

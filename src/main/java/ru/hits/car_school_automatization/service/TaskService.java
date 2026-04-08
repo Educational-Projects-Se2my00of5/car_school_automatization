@@ -3,6 +3,7 @@ package ru.hits.car_school_automatization.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.CreateTaskDto;
 import ru.hits.car_school_automatization.dto.TaskDto;
 import ru.hits.car_school_automatization.dto.UpdateTaskDto;
@@ -21,7 +22,6 @@ import ru.hits.car_school_automatization.repository.ChannelRepository;
 import ru.hits.car_school_automatization.repository.TaskRepository;
 import ru.hits.car_school_automatization.repository.TeamRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -117,7 +117,7 @@ public class TaskService {
                 .label(source.getLabel())
                 .text(source.getText())
                 .channel(targetChannel)
-            .documents(cloneDocuments(source.getDocuments()))
+                .documents(cloneDocuments(source.getDocuments()))
                 .teamType(source.getTeamType())
                 .type(source.getType())
                 .isCanRedistribute(source.getIsCanRedistribute())
@@ -230,9 +230,10 @@ public class TaskService {
                     String fileUrl = fileStorageService.store(file);
                     String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : extractFilenameFromUrl(fileUrl);
                     return TaskDocument.builder()
-                        .fileName(fileName)
-                        .fileUrl(fileUrl)
-                        .build())
+                            .fileName(fileName)
+                            .fileUrl(fileUrl)
+                            .build();
+                })
                 .toList();
     }
 
