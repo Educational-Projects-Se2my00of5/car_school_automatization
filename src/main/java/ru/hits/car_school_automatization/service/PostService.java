@@ -180,7 +180,10 @@ public class PostService {
         }
 
         if (post.getFileUrl() != null) {
-            String oldFilename = post.getFileName();
+            String oldFilename = extractFilenameFromUrl(post.getFileUrl());
+            if (oldFilename == null) {
+                oldFilename = post.getFileName();
+            }
             if (oldFilename != null) {
                 fileStorageService.delete(oldFilename);
             }
@@ -213,7 +216,10 @@ public class PostService {
         }
 
         if (post.getFileUrl() != null) {
-            String filename = post.getFileName();
+            String filename = extractFilenameFromUrl(post.getFileUrl());
+            if (filename == null) {
+                filename = post.getFileName();
+            }
             if (filename != null) {
                 fileStorageService.delete(filename);
             }
@@ -310,5 +316,12 @@ public class PostService {
         User author = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
         return author.getFirstName() + " " +  author.getLastName();
+    }
+
+    private String extractFilenameFromUrl(String fileUrl) {
+        if (fileUrl == null || !fileUrl.contains("/file/")) {
+            return null;
+        }
+        return fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
     }
 }
