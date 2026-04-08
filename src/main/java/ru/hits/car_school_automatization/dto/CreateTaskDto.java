@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.hits.car_school_automatization.enums.TaskType;
 import ru.hits.car_school_automatization.enums.TeamType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.List;
@@ -24,7 +25,7 @@ public class CreateTaskDto {
     @NotBlank
     private String text;
 
-    private List<String> documents;
+    private List<MultipartFile> documents;
 
     @NotNull
     private TeamType teamType;

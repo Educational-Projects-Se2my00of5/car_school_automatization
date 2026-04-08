@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.enums.TaskType;
 import ru.hits.car_school_automatization.enums.TeamType;
 
@@ -17,7 +18,7 @@ import java.util.List;
 public class UpdateTaskDto {
     private String label;
     private String text;
-    private List<String> documents;
+    private List<MultipartFile> documents;
     private TeamType teamType;
     private TaskType type;
     private Boolean isCanRedistribute;

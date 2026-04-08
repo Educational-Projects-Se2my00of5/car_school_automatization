@@ -57,7 +57,7 @@ public class Task {
     @ElementCollection
     @CollectionTable(name = "task_documents", joinColumns = @JoinColumn(name = "task_id"))
     @Builder.Default
-    private List<String> documents = new ArrayList<>();
+    private List<TaskDocument> documents = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

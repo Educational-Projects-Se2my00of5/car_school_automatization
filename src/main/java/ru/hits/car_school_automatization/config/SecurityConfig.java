@@ -74,6 +74,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/tasks/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/tasks").hasRole("TEACHER")
                         .requestMatchers(HttpMethod.PATCH, "/api/tasks/**").hasRole("TEACHER")
+                        .requestMatchers(HttpMethod.POST, "/api/tasks/*/documents").hasRole("TEACHER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/tasks/*/documents").hasRole("TEACHER")
                         .requestMatchers(HttpMethod.DELETE, "/api/tasks/*").hasRole("TEACHER")
                         .requestMatchers(HttpMethod.POST, "/api/tasks/*/copy").hasRole("TEACHER")
 

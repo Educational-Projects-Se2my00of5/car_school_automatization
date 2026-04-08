@@ -8,6 +8,7 @@ import ru.hits.car_school_automatization.dto.TaskDto;
 import ru.hits.car_school_automatization.dto.UpdateTaskDto;
 import ru.hits.car_school_automatization.entity.Channel;
 import ru.hits.car_school_automatization.entity.Task;
+import ru.hits.car_school_automatization.entity.TaskDocument;
 import ru.hits.car_school_automatization.entity.Team;
 import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.Role;
@@ -20,7 +21,9 @@ import ru.hits.car_school_automatization.repository.ChannelRepository;
 import ru.hits.car_school_automatization.repository.TaskRepository;
 import ru.hits.car_school_automatization.repository.TeamRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,6 +39,7 @@ public class TaskService {
     private final TaskMapper taskMapper;
     private final TeamRepository teamRepository;
     private final TeamFormationService teamFormationService;
+    private final FileStorageService fileStorageService;
 
     public TaskDto createTask(CreateTaskDto dto, UUID channelId, String authHeader) {
         Channel channel = channelRepository.findById(channelId)
@@ -49,7 +53,7 @@ public class TaskService {
                 .label(dto.getLabel().trim())
                 .text(dto.getText())
                 .channel(channel)
-                .documents(dto.getDocuments() != null ? dto.getDocuments() : List.of())
+                .documents(storeDocumentsFromFiles(dto.getDocuments()))
                 .teamType(dto.getTeamType())
                 .type(dto.getType())
                 .isCanRedistribute(dto.getIsCanRedistribute())
@@ -73,6 +77,9 @@ public class TaskService {
         validateTeacherLeadsChannel(authHeader, task.getChannel());
 
         taskMapper.updateTaskFromDto(dto, task);
+        if (dto.getDocuments() != null) {
+            replaceTaskDocuments(task, dto.getDocuments());
+        }
         validateQualifiedMin(task.getType(), task.getQualifiedMin());
         validateMinTeamSize(task.getMinTeamSize());
 
@@ -110,7 +117,7 @@ public class TaskService {
                 .label(source.getLabel())
                 .text(source.getText())
                 .channel(targetChannel)
-                .documents(source.getDocuments())
+            .documents(cloneDocuments(source.getDocuments()))
                 .teamType(source.getTeamType())
                 .type(source.getType())
                 .isCanRedistribute(source.getIsCanRedistribute())
@@ -127,7 +134,50 @@ public class TaskService {
                 .orElseThrow(() -> new NotFoundException("Задание с id " + taskId + " не найдено"));
 
         validateTeacherLeadsChannel(authHeader, task.getChannel());
+        deleteTaskDocuments(task);
         taskRepository.delete(task);
+    }
+
+    public TaskDto addDocument(UUID taskId, MultipartFile file, String authHeader) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new NotFoundException("Задание с id " + taskId + " не найдено"));
+
+        validateTeacherLeadsChannel(authHeader, task.getChannel());
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("Файл не может быть пустым");
+        }
+
+        String fileUrl = fileStorageService.store(file);
+        String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : extractFilenameFromUrl(fileUrl);
+
+        if (task.getDocuments() == null) {
+            task.setDocuments(new ArrayList<>());
+        }
+        task.getDocuments().add(TaskDocument.builder().fileName(fileName).fileUrl(fileUrl).build());
+
+        return taskMapper.toDto(taskRepository.save(task));
+    }
+
+    public TaskDto removeDocument(UUID taskId, String fileUrl, String authHeader) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new NotFoundException("Задание с id " + taskId + " не найдено"));
+
+        validateTeacherLeadsChannel(authHeader, task.getChannel());
+        if (fileUrl == null || fileUrl.isBlank()) {
+            throw new BadRequestException("fileUrl обязателен");
+        }
+
+        boolean removed = task.getDocuments().removeIf(doc -> fileUrl.equals(doc.getFileUrl()));
+        if (!removed) {
+            throw new NotFoundException("Документ с таким fileUrl не найден");
+        }
+
+        String filename = extractFilenameFromUrl(fileUrl);
+        if (filename != null) {
+            fileStorageService.delete(filename);
+        }
+
+        return taskMapper.toDto(taskRepository.save(task));
     }
 
     private void validateQualifiedMin(TaskType type, Integer qualifiedMin) {
@@ -168,5 +218,54 @@ public class TaskService {
         if (!inChannel) {
             throw new ForbiddenException("У пользователя нет доступа к этому предмету");
         }
+    }
+
+    private List<TaskDocument> storeDocumentsFromFiles(List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return files.stream()
+                .filter(file -> file != null && !file.isEmpty())
+                .map(file -> {
+                    String fileUrl = fileStorageService.store(file);
+                    String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : extractFilenameFromUrl(fileUrl);
+                    return TaskDocument.builder()
+                        .fileName(fileName)
+                        .fileUrl(fileUrl)
+                        .build())
+                .toList();
+    }
+
+    private List<TaskDocument> cloneDocuments(List<TaskDocument> documents) {
+        if (documents == null || documents.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return documents.stream()
+                .map(doc -> TaskDocument.builder().fileName(doc.getFileName()).fileUrl(doc.getFileUrl()).build())
+                .toList();
+    }
+
+    private void deleteTaskDocuments(Task task) {
+        if (task.getDocuments() == null || task.getDocuments().isEmpty()) {
+            return;
+        }
+        task.getDocuments().forEach(doc -> {
+            String filename = extractFilenameFromUrl(doc.getFileUrl());
+            if (filename != null) {
+                fileStorageService.delete(filename);
+            }
+        });
+    }
+
+    private void replaceTaskDocuments(Task task, List<MultipartFile> files) {
+        deleteTaskDocuments(task);
+        task.setDocuments(storeDocumentsFromFiles(files));
+    }
+
+    private String extractFilenameFromUrl(String fileUrl) {
+        if (fileUrl == null || !fileUrl.contains("/file/")) {
+            return null;
+        }
+        return fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
     }
 }
