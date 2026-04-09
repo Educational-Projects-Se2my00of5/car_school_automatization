@@ -1,6 +1,7 @@
 package ru.hits.car_school_automatization.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,7 @@ public class SolutionController {
     @Operation(summary = "Отправить решение на задание")
     public SolutionDto submitSolution(
             @Valid @ModelAttribute SubmitSolutionDto submitDto,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return solutionService.submitSolution(submitDto, authHeader);
     }
 
@@ -35,7 +36,7 @@ public class SolutionController {
     public SolutionDto updateSolution(
             @PathVariable UUID solutionId,
             @Valid @ModelAttribute UpdateSolutionDto updateDto,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return solutionService.updateSolution(solutionId, updateDto, authHeader);
     }
 
@@ -43,7 +44,7 @@ public class SolutionController {
     @Operation(summary = "Оценить решение (для преподавателя)")
     public SolutionDto gradeSolution(
             @Valid @RequestBody GradeSolutionDto gradeDto,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return solutionService.gradeSolution(gradeDto, authHeader);
     }
 
@@ -51,7 +52,7 @@ public class SolutionController {
     @Operation(summary = "Получить решение по ID")
     public SolutionDto getSolutionById(
             @PathVariable UUID solutionId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return solutionService.getSolutionById(solutionId, authHeader);
     }
 
@@ -59,7 +60,7 @@ public class SolutionController {
     @Operation(summary = "Получить все решения студента")
     public List<SolutionDto> getStudentSolutions(
             @PathVariable Long studentId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return solutionService.getStudentSolutions(studentId, authHeader);
     }
 
@@ -67,7 +68,7 @@ public class SolutionController {
     @Operation(summary = "Получить все решения по заданию (для преподавателя)")
     public List<SolutionDto> getTaskSolutions(
             @PathVariable UUID taskId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return solutionService.getTaskSolutions(taskId, authHeader);
     }
 
@@ -75,7 +76,7 @@ public class SolutionController {
     @Operation(summary = "Получить неоценённые решения по заданию (для преподавателя)")
     public List<SolutionDto> getUngradedSolutions(
             @PathVariable UUID taskId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return solutionService.getUngradedSolutions(taskId, authHeader);
     }
 
@@ -84,7 +85,7 @@ public class SolutionController {
     public List<TaskWithSolutionDto> getStudentTasksWithSolutions(
             @PathVariable Long studentId,
             @PathVariable UUID channelId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return solutionService.getStudentTasksWithSolutions(studentId, channelId, authHeader);
     }
 
@@ -93,7 +94,7 @@ public class SolutionController {
     @Operation(summary = "Удалить решение (студент может удалить только неоценённое, админ - любое)")
     public void deleteSolution(
             @PathVariable UUID solutionId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         solutionService.deleteSolution(solutionId, authHeader);
     }
 }

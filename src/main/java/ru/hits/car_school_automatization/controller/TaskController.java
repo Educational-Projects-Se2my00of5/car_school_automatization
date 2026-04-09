@@ -1,6 +1,8 @@
 package ru.hits.car_school_automatization.controller;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +31,7 @@ public class TaskController {
     @Operation(summary = "Создать задание")
     public TaskDto createTask(@Valid @ModelAttribute CreateTaskDto dto,
                               @RequestParam UUID channelId,
-                              @RequestHeader("Authorization") String authHeader) {
+                              @Parameter(hidden = true) @RequestHeader("Authorization")  String authHeader) {
         return taskService.createTask(dto, channelId, authHeader);
     }
 
@@ -38,7 +40,7 @@ public class TaskController {
     @Operation(summary = "Обновить задание")
     public TaskDto updateTask(@PathVariable UUID taskId,
                               @ModelAttribute UpdateTaskDto dto,
-                              @RequestHeader("Authorization") String authHeader) {
+                              @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return taskService.updateTask(taskId, dto, authHeader);
     }
 
@@ -46,7 +48,7 @@ public class TaskController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Получить задание по id")
     public TaskDto getTask(@PathVariable UUID taskId,
-                           @RequestHeader("Authorization") String authHeader) {
+                           @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return taskService.getTask(taskId, authHeader);
     }
 
@@ -54,7 +56,7 @@ public class TaskController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Получить задания предмета")
     public List<TaskDto> getTasksByChannel(@PathVariable UUID channelId,
-                                           @RequestHeader("Authorization") String authHeader) {
+                                           @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return taskService.getTasksByChannel(channelId, authHeader);
     }
 
@@ -63,7 +65,7 @@ public class TaskController {
     @Operation(summary = "Скопировать задание в предмет")
     public TaskDto copyTask(@PathVariable UUID taskId,
                             @RequestParam UUID targetChannelId,
-                            @RequestHeader("Authorization") String authHeader) {
+                            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return taskService.copyTask(taskId, targetChannelId, authHeader);
     }
 
@@ -72,7 +74,7 @@ public class TaskController {
     @Operation(summary = "Добавить документ к заданию")
     public TaskDto addDocument(@PathVariable UUID taskId,
                                @RequestParam("file") MultipartFile file,
-                               @RequestHeader("Authorization") String authHeader) {
+                               @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return taskService.addDocument(taskId, file, authHeader);
     }
 
@@ -81,7 +83,7 @@ public class TaskController {
     @Operation(summary = "Удалить документ из задания")
     public TaskDto removeDocument(@PathVariable UUID taskId,
                                   @RequestParam String fileUrl,
-                                  @RequestHeader("Authorization") String authHeader) {
+                                  @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return taskService.removeDocument(taskId, fileUrl, authHeader);
     }
 
@@ -89,7 +91,7 @@ public class TaskController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Удалить задание")
     public void deleteTask(@PathVariable UUID taskId,
-                           @RequestHeader("Authorization") String authHeader) {
+                           @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         taskService.deleteTask(taskId, authHeader);
     }
 }

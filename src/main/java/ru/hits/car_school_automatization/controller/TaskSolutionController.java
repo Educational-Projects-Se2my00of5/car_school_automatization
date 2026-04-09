@@ -1,6 +1,7 @@
 package ru.hits.car_school_automatization.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +40,7 @@ public class TaskSolutionController {
     public TaskSolutionDto create(
             @RequestParam UUID taskId,
             @Valid @ModelAttribute CreateTaskSolutionDto dto,
-            @RequestHeader("Authorization") String authHeader
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader
     ) {
         return taskSolutionService.create(taskId, dto, authHeader);
     }
@@ -48,7 +49,7 @@ public class TaskSolutionController {
     @Operation(summary = "Получить решение по id")
     public TaskSolutionDto getById(
             @PathVariable UUID solutionId,
-            @RequestHeader("Authorization") String authHeader
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader
     ) {
         return taskSolutionService.getById(solutionId, authHeader);
     }
@@ -57,7 +58,7 @@ public class TaskSolutionController {
     @Operation(summary = "Получить все решения по taskId")
     public List<TaskSolutionDto> getByTask(
             @PathVariable UUID taskId,
-            @RequestHeader("Authorization") String authHeader
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader
     ) {
         return taskSolutionService.getByTask(taskId, authHeader);
     }
@@ -65,7 +66,7 @@ public class TaskSolutionController {
     @GetMapping("/my")
     @Operation(summary = "Получить мои решения")
     public List<TaskSolutionDto> getMySolutions(
-            @RequestHeader("Authorization") String authHeader
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader
     ) {
         return taskSolutionService.getMySolutions(authHeader);
     }
@@ -75,7 +76,7 @@ public class TaskSolutionController {
     public TaskSolutionDto update(
             @PathVariable UUID solutionId,
             @Valid @ModelAttribute UpdateTaskSolutionDto dto,
-            @RequestHeader("Authorization") String authHeader
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader
     ) {
         return taskSolutionService.update(solutionId, dto, authHeader);
     }
@@ -85,7 +86,7 @@ public class TaskSolutionController {
     @Operation(summary = "Удалить решение")
     public void delete(
             @PathVariable UUID solutionId,
-            @RequestHeader("Authorization") String authHeader
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader
     ) {
         taskSolutionService.delete(solutionId, authHeader);
     }

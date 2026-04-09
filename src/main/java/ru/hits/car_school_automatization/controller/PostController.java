@@ -1,6 +1,7 @@
 package ru.hits.car_school_automatization.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ public class PostController {
     @Operation(summary = "Создание нового поста")
     public void createPost(
             @Valid @ModelAttribute CreatePostDto createPostDto,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         postService.createPost(createPostDto, authHeader);
     }
 
@@ -38,7 +39,7 @@ public class PostController {
     @Operation(summary = "Удаление поста")
     public void deletePost(
             @PathVariable UUID postId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         postService.deletePost(postId, authHeader);
     }
 
@@ -50,7 +51,7 @@ public class PostController {
 
     @GetMapping("/{postId}")
     @Operation(summary = "Получение поста по ID")
-    public PostDto getPostById(@PathVariable UUID postId, @RequestHeader("Authorization") String authHeader) {
+    public PostDto getPostById(@PathVariable UUID postId, @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return postService.getPostById(postId, authHeader);
     }
 
@@ -60,7 +61,7 @@ public class PostController {
     public void addFileToPost(
             @PathVariable UUID postId,
             @RequestPart("file") MultipartFile file,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         postService.addFileToPost(postId, file, authHeader);
     }
 
@@ -69,7 +70,7 @@ public class PostController {
     @Operation(summary = "Удаление файла из поста")
     public void deleteFileFromPost(
             @PathVariable UUID postId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         postService.deleteFileFromPost(postId, authHeader);
     }
 

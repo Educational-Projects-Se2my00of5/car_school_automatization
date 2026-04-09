@@ -24,6 +24,7 @@ import ru.hits.car_school_automatization.repository.TeamRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -65,7 +66,8 @@ public class TaskService {
         Task savedTask = taskRepository.save(task);
         List<Team> teams = teamFormationService.formByTeamType(savedTask, List.copyOf(channel.getUsers()), dto);
         if (!teams.isEmpty()) {
-            teamRepository.saveAll(teams);
+            List<Team> savedTeams = teamRepository.saveAll(teams);
+            savedTask.setTeams(new HashSet<>(savedTeams));
         }
         return taskMapper.toDto(savedTask);
     }

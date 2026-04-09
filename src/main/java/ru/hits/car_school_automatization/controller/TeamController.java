@@ -1,6 +1,7 @@
 package ru.hits.car_school_automatization.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ public class TeamController {
     @Operation(summary = "Создание команды (TEACHER)")
     public TeamDto createTeam(
             @Valid @RequestBody CreateTeamDto dto,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return teamService.createTeam(dto, authHeader);
     }
 
@@ -37,7 +38,7 @@ public class TeamController {
     public TeamDto updateTeam(
             @PathVariable UUID teamId,
             @RequestBody UpdateTeamDto dto,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return teamService.updateTeam(teamId, dto, authHeader);
     }
 
@@ -61,7 +62,7 @@ public class TeamController {
     public TeamDto addMember(
             @PathVariable UUID teamId,
             @PathVariable Long userId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return teamService.addMember(teamId, userId, authHeader);
     }
 
@@ -71,7 +72,7 @@ public class TeamController {
     public TeamDto removeMember(
             @PathVariable UUID teamId,
             @PathVariable Long userId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return teamService.removeMember(teamId, userId, authHeader);
     }
 
@@ -80,7 +81,7 @@ public class TeamController {
     @Operation(summary = "Студент вступает в команду (STUDENT)")
     public TeamDto joinTeam(
             @PathVariable UUID teamId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return teamService.joinTeam(teamId, authHeader);
     }
 
@@ -89,7 +90,7 @@ public class TeamController {
     @Operation(summary = "Студент выходит из команды (STUDENT)")
     public TeamDto leaveTeam(
             @PathVariable UUID teamId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return teamService.leaveTeam(teamId, authHeader);
     }
 
@@ -98,7 +99,7 @@ public class TeamController {
     @Operation(summary = "Удаление команды (TEACHER)")
     public void deleteTeam(
             @PathVariable UUID teamId,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         teamService.deleteTeam(teamId, authHeader);
     }
 }
