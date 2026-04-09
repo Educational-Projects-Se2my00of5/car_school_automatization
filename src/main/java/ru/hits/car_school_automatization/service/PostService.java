@@ -12,6 +12,7 @@ import ru.hits.car_school_automatization.dto.SolutionDto;
 import ru.hits.car_school_automatization.entity.Channel;
 import ru.hits.car_school_automatization.entity.Post;
 import ru.hits.car_school_automatization.entity.Solution;
+import ru.hits.car_school_automatization.entity.Task;
 import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.PostType;
 import ru.hits.car_school_automatization.enums.Role;
@@ -21,6 +22,10 @@ import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.repository.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,6 +39,7 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final ChannelRepository channelRepository;
     private final PostRepository postRepository;
+    private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final SolutionRepository solutionRepository;
@@ -108,10 +114,30 @@ public class PostService {
     public List<ShortPostDto> getPostsByChannelId(UUID channelId) {
         log.info("Получение постов для канала с id: {}", channelId);
 
-        return postRepository.findByChannelIdOrderByCreatedAtDesc(channelId)
-                .stream()
-                .map(post -> mapToShortPostDto(post, getAuthorFullName(post.getAuthorId())))
-                .collect(Collectors.toList());
+        List<FeedItem> feedItems = new ArrayList<>();
+
+        postRepository.findByChannelIdOrderByCreatedAtDesc(channelId)
+            .forEach(post -> feedItems.add(
+                new FeedItem(
+                    mapToShortPostDto(post, getAuthorFullName(post.getAuthorId())),
+                    post.getCreatedAt() == null ? Instant.EPOCH : post.getCreatedAt().toInstant(ZoneOffset.UTC)
+                )
+            ));
+
+        List<Task> tasks = taskRepository.findByChannel_Id(channelId);
+        if (tasks != null && !tasks.isEmpty()) {
+            tasks.forEach(task -> feedItems.add(
+                new FeedItem(
+                    mapTaskToShortPostDto(task),
+                    task.getStartAt() == null ? Instant.EPOCH : task.getStartAt()
+                )
+            ));
+        }
+
+        return feedItems.stream()
+            .sorted(Comparator.comparing(FeedItem::createdAt).reversed())
+            .map(FeedItem::dto)
+            .toList();
     }
 
     /**
@@ -266,6 +292,22 @@ public class PostService {
                 .build();
     }
 
+    private ShortPostDto mapTaskToShortPostDto(Task task) {
+        String authorName = "Командное задание";
+        if (task.getChannel() != null && task.getChannel().getCreator() != null) {
+            User creator = task.getChannel().getCreator();
+            authorName = creator.getFirstName() + " " + creator.getLastName();
+        }
+
+        return ShortPostDto.builder()
+                .id(task.getId().toString())
+                .authorName(authorName)
+                .label(task.getLabel())
+                .type(PostType.TASK)
+                .totalComments(0)
+                .build();
+    }
+
     /**
      * Маппинг Post в PostDto
      */
@@ -323,5 +365,8 @@ public class PostService {
             return null;
         }
         return fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+    }
+
+    private record FeedItem(ShortPostDto dto, Instant createdAt) {
     }
 }

@@ -14,14 +14,18 @@ import ru.hits.car_school_automatization.dto.ShortPostDto;
 import ru.hits.car_school_automatization.entity.Channel;
 import ru.hits.car_school_automatization.entity.Post;
 import ru.hits.car_school_automatization.entity.Solution;
+import ru.hits.car_school_automatization.entity.Task;
 import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.PostType;
 import ru.hits.car_school_automatization.enums.Role;
+import ru.hits.car_school_automatization.enums.TaskType;
+import ru.hits.car_school_automatization.enums.TeamType;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.repository.*;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -42,6 +46,9 @@ class PostServiceTest {
 
     @Mock
     private PostRepository postRepository;
+
+    @Mock
+    private TaskRepository taskRepository;
 
     @Mock
     private ChannelRepository channelRepository;
@@ -176,6 +183,7 @@ class PostServiceTest {
     void getPostsByChannelId_ShouldReturnListOfShortPostDto() {
         List<Post> posts = List.of(post);
         when(postRepository.findByChannelIdOrderByCreatedAtDesc(channelId)).thenReturn(posts);
+        when(taskRepository.findByChannel_Id(channelId)).thenReturn(List.of());
         when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
 
         List<ShortPostDto> result = postService.getPostsByChannelId(channelId);
@@ -503,6 +511,7 @@ class PostServiceTest {
         Integer commentsCount = 5;
 
         when(postRepository.findByChannelIdOrderByCreatedAtDesc(channelId)).thenReturn(posts);
+        when(taskRepository.findByChannel_Id(channelId)).thenReturn(List.of());
         when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
         when(commentRepository.countByPostId(postId)).thenReturn(commentsCount);
 
@@ -521,6 +530,7 @@ class PostServiceTest {
         Integer commentsCount = 0;
 
         when(postRepository.findByChannelIdOrderByCreatedAtDesc(channelId)).thenReturn(posts);
+        when(taskRepository.findByChannel_Id(channelId)).thenReturn(List.of());
         when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
         when(commentRepository.countByPostId(postId)).thenReturn(commentsCount);
 
@@ -529,5 +539,79 @@ class PostServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getId()).isEqualTo(postId.toString());
         assertThat(result.get(0).getTotalComments()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("Получение постов канала должно включать групповые задания Task")
+    void getPostsByChannelId_ShouldIncludeGroupTasks() {
+        UUID groupTaskId = UUID.randomUUID();
+        Channel channel = new Channel(channelId, "Channel", "Desc", null, Set.of(author), author);
+        Task groupTask = Task.builder()
+                .id(groupTaskId)
+                .label("Group Task")
+                .text("Team work")
+                .channel(channel)
+                .documents(List.of())
+                .teamType(TeamType.FREE)
+                .type(TaskType.FREE)
+                .minTeamSize(2)
+                .isCanRedistribute(false)
+                .build();
+
+        when(postRepository.findByChannelIdOrderByCreatedAtDesc(channelId)).thenReturn(List.of(post));
+        when(taskRepository.findByChannel_Id(channelId)).thenReturn(List.of(groupTask));
+        when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(commentRepository.countByPostId(postId)).thenReturn(1);
+
+        List<ShortPostDto> result = postService.getPostsByChannelId(channelId);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.stream().anyMatch(item -> item.getId().equals(groupTaskId.toString())
+                && item.getLabel().equals("Group Task")
+                && item.getType() == PostType.TASK
+                && item.getTotalComments() == 0)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Посты и групповые задания в ленте сортируются по дате создания")
+    void getPostsByChannelId_ShouldSortMergedFeedByCreatedAtDesc() {
+        UUID olderPostId = UUID.randomUUID();
+        UUID newerTaskId = UUID.randomUUID();
+
+        Post olderPost = Post.builder()
+                .id(olderPostId)
+                .label("Older Post")
+                .text("Text")
+                .type(PostType.NEWS)
+                .authorId(authorId)
+                .channelId(channelId)
+                .needMark(false)
+                .createdAt(LocalDateTime.now().minusDays(2))
+                .build();
+
+        Channel channel = new Channel(channelId, "Channel", "Desc", null, Set.of(author), author);
+        Task newerTask = Task.builder()
+                .id(newerTaskId)
+                .label("Newer Task")
+                .text("Task")
+                .channel(channel)
+                .documents(List.of())
+                .teamType(TeamType.FREE)
+                .type(TaskType.FREE)
+                .minTeamSize(2)
+                .isCanRedistribute(false)
+                .startAt(Instant.now().minusSeconds(60))
+                .build();
+
+        when(postRepository.findByChannelIdOrderByCreatedAtDesc(channelId)).thenReturn(List.of(olderPost));
+        when(taskRepository.findByChannel_Id(channelId)).thenReturn(List.of(newerTask));
+        when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(commentRepository.countByPostId(olderPostId)).thenReturn(0);
+
+        List<ShortPostDto> result = postService.getPostsByChannelId(channelId);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getId()).isEqualTo(newerTaskId.toString());
+        assertThat(result.get(1).getId()).isEqualTo(olderPostId.toString());
     }
 }
