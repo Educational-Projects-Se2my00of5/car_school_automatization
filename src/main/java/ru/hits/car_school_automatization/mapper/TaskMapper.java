@@ -11,7 +11,7 @@ import ru.hits.car_school_automatization.entity.Task;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = TeamMapper.class)
 public interface TaskMapper {
 
     @Mapping(target = "channelId", source = "channel.id")

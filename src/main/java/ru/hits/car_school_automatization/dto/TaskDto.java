@@ -28,4 +28,5 @@ public class TaskDto {
     private Integer qualifiedMin;
     private Integer minTeamSize;
     private Instant votingDeadline;
+    private List<TeamDto> teams;
 }
