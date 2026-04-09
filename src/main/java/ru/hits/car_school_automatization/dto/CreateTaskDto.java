@@ -31,8 +31,8 @@ public class CreateTaskDto {
     private TeamType teamType;
 
     // Параметры формирования команд по режимам TeamType
-    private Integer randomTeamSize;
     private List<Long> draftCaptainIds;
+    @NotNull
     private Integer freeTeamCount;
 
     @NotNull

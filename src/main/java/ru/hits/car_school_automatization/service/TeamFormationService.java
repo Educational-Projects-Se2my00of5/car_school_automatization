@@ -25,18 +25,26 @@ public class TeamFormationService {
                 .filter(user -> user.getRole().contains(Role.STUDENT))
                 .toList();
 
+        Integer freeTeamCount = dto.getFreeTeamCount();
+        if (freeTeamCount == null || freeTeamCount < 1) {
+            throw new BadRequestException("freeTeamCount должен быть больше 0");
+        }
+
         return switch (task.getTeamType()) {
             case RANDOM -> {
-                int teamSize = dto.getRandomTeamSize() == null ? task.getMinTeamSize() : dto.getRandomTeamSize();
-                if (teamSize < 1) {
-                    throw new BadRequestException("randomTeamSize должен быть больше 0");
-                }
-                yield formRandom(task, students, teamSize);
+                validateAverageTeamSize(students.size(), freeTeamCount, task.getMinTeamSize(), "RANDOM");
+                yield formRandom(task, students, freeTeamCount);
             }
             case DRAFT -> {
+                validateAverageTeamSize(students.size(), freeTeamCount, task.getMinTeamSize(), "DRAFT");
+
                 List<Long> captainIds = dto.getDraftCaptainIds();
                 if (captainIds == null || captainIds.isEmpty()) {
                     throw new BadRequestException("Для DRAFT необходимо передать draftCaptainIds");
+                }
+
+                if (captainIds.size() != freeTeamCount) {
+                    throw new BadRequestException("Для DRAFT число капитанов должно совпадать с freeTeamCount");
                 }
 
                 Set<Long> uniqueCaptainIds = new HashSet<>(captainIds);
@@ -55,35 +63,39 @@ public class TeamFormationService {
                     throw new BadRequestException("Все капитаны должны быть студентами данного предмета");
                 }
 
-                int teamCount = captains.size();
-                if (students.size() < teamCount * task.getMinTeamSize()) {
-                    throw new BadRequestException("Слишком много команд для DRAFT: невозможно обеспечить minTeamSize для каждой команды");
-                }
-
                 yield formDraft(task, captains);
             }
             case FREE -> {
-                int teamCount = dto.getFreeTeamCount() == null ? 1 : dto.getFreeTeamCount();
-                if (teamCount < 1) {
-                    throw new BadRequestException("freeTeamCount должен быть больше 0");
-                }
-                yield formFree(task, teamCount);
+                validateAverageTeamSize(students.size(), freeTeamCount, task.getMinTeamSize(), "FREE");
+                yield formFree(task, freeTeamCount);
             }
         };
     }
 
-    public List<Team> formRandom(Task task, List<User> users, int teamSize) {
+    public List<Team> formRandom(Task task, List<User> users, int teamCount) {
+        if (teamCount < 1) {
+            throw new BadRequestException("teamCount должен быть больше 0");
+        }
+
         List<User> shuffled = new ArrayList<>(users);
         Collections.shuffle(shuffled);
 
+        List<List<User>> buckets = new ArrayList<>();
+        for (int i = 0; i < teamCount; i++) {
+            buckets.add(new ArrayList<>());
+        }
+
+        for (int i = 0; i < shuffled.size(); i++) {
+            buckets.get(i % teamCount).add(shuffled.get(i));
+        }
+
         List<Team> teams = new ArrayList<>();
         int teamIndex = 1;
-        for (int i = 0; i < shuffled.size(); i += teamSize) {
-            Set<User> members = new HashSet<>(shuffled.subList(i, Math.min(i + teamSize, shuffled.size())));
+        for (List<User> bucket : buckets) {
             Team team = Team.builder()
                     .name("Команда " + teamIndex++)
                     .task(task)
-                    .users(members)
+                    .users(new HashSet<>(bucket))
                     .build();
             teams.add(team);
         }
@@ -120,5 +132,12 @@ public class TeamFormationService {
         }
 
         return teams;
+    }
+
+    private void validateAverageTeamSize(int studentCount, int teamCount, int minTeamSize, String mode) {
+        double averageSize = teamCount == 0 ? 0 : (double) studentCount / teamCount;
+        if (averageSize < minTeamSize) {
+            throw new BadRequestException("Для " + mode + " средний размер команды меньше minTeamSize");
+        }
     }
 }

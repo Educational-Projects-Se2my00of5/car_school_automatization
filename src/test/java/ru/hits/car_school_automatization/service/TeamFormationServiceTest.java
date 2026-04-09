@@ -20,11 +20,11 @@ class TeamFormationServiceTest {
     private final TeamFormationService service = new TeamFormationService();
 
     @Test
-    @DisplayName("RANDOM: при пустом randomTeamSize используется minTeamSize")
-    void formByTeamType_Random_UsesMinTeamSizeByDefault() {
+    @DisplayName("RANDOM: freeTeamCount задает количество команд")
+    void formByTeamType_Random_UsesFreeTeamCount() {
         Task task = task(TeamType.RANDOM, 2);
         CreateTaskDto dto = baseDto(TeamType.RANDOM);
-        dto.setRandomTeamSize(null);
+        dto.setFreeTeamCount(2);
 
         List<User> channelUsers = List.of(student(1L), student(2L), student(3L), student(4L));
 
@@ -35,18 +35,13 @@ class TeamFormationServiceTest {
     }
 
     @Test
-    @DisplayName("RANDOM: randomTeamSize < 1 вызывает BadRequest")
-    void formByTeamType_Random_InvalidTeamSize_Throws() {
+    @DisplayName("RANDOM: freeTeamCount обязателен")
+    void formByTeamType_Random_WithoutFreeTeamCount_Throws() {
         Task task = task(TeamType.RANDOM, 2);
         CreateTaskDto dto = baseDto(TeamType.RANDOM);
-        dto.setRandomTeamSize(0);
+        dto.setFreeTeamCount(null);
 
-        BadRequestException ex = assertThrows(
-                BadRequestException.class,
-                () -> service.formByTeamType(task, List.of(student(1L)), dto)
-        );
-
-        assertTrue(ex.getMessage().contains("randomTeamSize"));
+        assertThrows(BadRequestException.class, () -> service.formByTeamType(task, List.of(student(1L)), dto));
     }
 
     @Test
@@ -54,6 +49,7 @@ class TeamFormationServiceTest {
     void formByTeamType_Draft_EmptyCaptains_Throws() {
         Task task = task(TeamType.DRAFT, 2);
         CreateTaskDto dto = baseDto(TeamType.DRAFT);
+        dto.setFreeTeamCount(1);
         dto.setDraftCaptainIds(List.of());
 
         assertThrows(BadRequestException.class, () -> service.formByTeamType(task, List.of(student(1L)), dto));
@@ -64,6 +60,7 @@ class TeamFormationServiceTest {
     void formByTeamType_Draft_Duplicates_Throws() {
         Task task = task(TeamType.DRAFT, 2);
         CreateTaskDto dto = baseDto(TeamType.DRAFT);
+        dto.setFreeTeamCount(2);
         dto.setDraftCaptainIds(List.of(1L, 1L));
 
         assertThrows(BadRequestException.class, () -> service.formByTeamType(task, List.of(student(1L), student(2L)), dto));
@@ -74,6 +71,7 @@ class TeamFormationServiceTest {
     void formByTeamType_Draft_CaptainNotStudent_Throws() {
         Task task = task(TeamType.DRAFT, 2);
         CreateTaskDto dto = baseDto(TeamType.DRAFT);
+        dto.setFreeTeamCount(1);
         dto.setDraftCaptainIds(List.of(1L));
 
         List<User> channelUsers = List.of(teacher(1L), student(2L), student(3L));
@@ -82,13 +80,27 @@ class TeamFormationServiceTest {
     }
 
     @Test
-    @DisplayName("DRAFT: слишком много команд относительно minTeamSize вызывает BadRequest")
-    void formByTeamType_Draft_TooManyTeams_Throws() {
+    @DisplayName("DRAFT: проверка minTeamSize через среднее вызывает BadRequest")
+    void formByTeamType_Draft_AverageBelowMinTeamSize_Throws() {
         Task task = task(TeamType.DRAFT, 3);
         CreateTaskDto dto = baseDto(TeamType.DRAFT);
+        dto.setFreeTeamCount(2);
         dto.setDraftCaptainIds(List.of(1L, 2L));
 
         List<User> channelUsers = List.of(student(1L), student(2L), student(3L), student(4L), student(5L));
+
+        assertThrows(BadRequestException.class, () -> service.formByTeamType(task, channelUsers, dto));
+    }
+
+    @Test
+    @DisplayName("DRAFT: количество капитанов должно совпадать с freeTeamCount")
+    void formByTeamType_Draft_CaptainsCountMustMatchFreeTeamCount() {
+        Task task = task(TeamType.DRAFT, 2);
+        CreateTaskDto dto = baseDto(TeamType.DRAFT);
+        dto.setFreeTeamCount(3);
+        dto.setDraftCaptainIds(List.of(1L, 2L));
+
+        List<User> channelUsers = List.of(student(1L), student(2L), student(3L), student(4L), student(5L), student(6L));
 
         assertThrows(BadRequestException.class, () -> service.formByTeamType(task, channelUsers, dto));
     }
@@ -98,6 +110,7 @@ class TeamFormationServiceTest {
     void formByTeamType_Draft_Success() {
         Task task = task(TeamType.DRAFT, 2);
         CreateTaskDto dto = baseDto(TeamType.DRAFT);
+        dto.setFreeTeamCount(2);
         dto.setDraftCaptainIds(List.of(1L, 2L));
 
         List<User> channelUsers = List.of(student(1L), student(2L), student(3L), student(4L));
@@ -110,15 +123,35 @@ class TeamFormationServiceTest {
     }
 
     @Test
-    @DisplayName("FREE: если freeTeamCount не передан, создается одна команда")
-    void formByTeamType_Free_DefaultOneTeam() {
+    @DisplayName("FREE: freeTeamCount определяет число команд")
+    void formByTeamType_Free_UsesProvidedTeamCount() {
         Task task = task(TeamType.FREE, 2);
         CreateTaskDto dto = baseDto(TeamType.FREE);
-        dto.setFreeTeamCount(null);
+        dto.setFreeTeamCount(2);
 
-        List<Team> teams = service.formByTeamType(task, List.of(student(1L), student(2L)), dto);
+        List<Team> teams = service.formByTeamType(task, List.of(student(1L), student(2L), student(3L), student(4L)), dto);
 
-        assertEquals(1, teams.size());
+        assertEquals(2, teams.size());
+    }
+
+    @Test
+    @DisplayName("FREE: проверка minTeamSize через среднее вызывает BadRequest")
+    void formByTeamType_Free_AverageBelowMinTeamSize_Throws() {
+        Task task = task(TeamType.FREE, 3);
+        CreateTaskDto dto = baseDto(TeamType.FREE);
+        dto.setFreeTeamCount(2);
+
+        assertThrows(BadRequestException.class, () -> service.formByTeamType(task, List.of(student(1L), student(2L), student(3L), student(4L), student(5L)), dto));
+    }
+
+    @Test
+    @DisplayName("RANDOM: проверка minTeamSize через среднее вызывает BadRequest")
+    void formByTeamType_Random_AverageBelowMinTeamSize_Throws() {
+        Task task = task(TeamType.RANDOM, 3);
+        CreateTaskDto dto = baseDto(TeamType.RANDOM);
+        dto.setFreeTeamCount(2);
+
+        assertThrows(BadRequestException.class, () -> service.formByTeamType(task, List.of(student(1L), student(2L), student(3L), student(4L), student(5L)), dto));
     }
 
     private static CreateTaskDto baseDto(TeamType teamType) {
@@ -128,6 +161,7 @@ class TeamFormationServiceTest {
                 .teamType(teamType)
                 .type(TaskType.FREE)
                 .minTeamSize(2)
+                .freeTeamCount(1)
                 .isCanRedistribute(false)
                 .build();
     }
