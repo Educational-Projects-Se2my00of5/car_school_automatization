@@ -7,9 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import ru.hits.car_school_automatization.dto.CreateTeamDto;
-import ru.hits.car_school_automatization.dto.TeamDto;
-import ru.hits.car_school_automatization.dto.UpdateTeamDto;
+import ru.hits.car_school_automatization.dto.*;
 import ru.hits.car_school_automatization.service.TeamService;
 
 import java.util.List;
@@ -101,5 +99,39 @@ public class TeamController {
             @PathVariable UUID teamId,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         teamService.deleteTeam(teamId, authHeader);
+    }
+
+    @PostMapping("/choose-captain")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Выбор/голосование за капитана (TEACHER назначает, STUDENT голосует или инициирует)")
+    public TeamDto chooseCaptain(
+            @RequestBody ChooseCaptainDto dto,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return teamService.chooseCaptain(dto, authHeader);
+    }
+
+    @PostMapping("/{teamId}/init-captain-voting")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Инициировать голосование за капитана (STUDENT)")
+    public TeamDto initCaptainVoting(
+            @PathVariable UUID teamId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return teamService.initCaptainVoting(teamId, authHeader);
+    }
+
+    @GetMapping("/{teamId}/captain")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Получить текущего капитана команды")
+    public UserDto.FullInfo getCaptain(@PathVariable UUID teamId) {
+        return teamService.getCaptain(teamId);
+    }
+
+    @GetMapping("/{teamId}/captain-votes")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Получить результаты голосования за капитана")
+    public List<CaptainVoteDto> getCaptainVotes(
+            @PathVariable UUID teamId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return teamService.getCaptainVotes(teamId, authHeader);
     }
 }
