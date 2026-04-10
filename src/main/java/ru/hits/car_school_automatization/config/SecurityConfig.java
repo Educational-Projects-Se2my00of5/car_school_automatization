@@ -89,6 +89,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/teams/invites/*").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.GET, "/api/teams/invites/my").hasRole("STUDENT")
 
+                        .requestMatchers(HttpMethod.POST, "/api/teams/choose-captain").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/teams/**/init-captain-voting").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.GET, "/api/teams/**/captain").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/teams/**/captain-votes").authenticated()
+
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthFilter, BasicAuthenticationFilter.class);
