@@ -568,7 +568,7 @@ class PostServiceTest {
         assertThat(result).hasSize(2);
         assertThat(result.stream().anyMatch(item -> item.getId().equals(groupTaskId.toString())
                 && item.getLabel().equals("Group Task")
-                && item.getType() == PostType.TASK
+                && item.getType() == PostType.TEAM_TASK
                 && item.getTotalComments() == 0)).isTrue();
     }
 

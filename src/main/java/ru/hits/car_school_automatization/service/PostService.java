@@ -303,7 +303,7 @@ public class PostService {
                 .id(task.getId().toString())
                 .authorName(authorName)
                 .label(task.getLabel())
-                .type(PostType.TASK)
+            .type(PostType.TEAM_TASK)
                 .totalComments(0)
                 .build();
     }
