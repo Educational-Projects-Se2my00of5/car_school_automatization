@@ -7,16 +7,14 @@ import org.springframework.stereotype.Service;
 import ru.hits.car_school_automatization.dto.CreateTeamDto;
 import ru.hits.car_school_automatization.dto.TeamDto;
 import ru.hits.car_school_automatization.dto.UpdateTeamDto;
-import ru.hits.car_school_automatization.entity.Channel;
-import ru.hits.car_school_automatization.entity.Task;
-import ru.hits.car_school_automatization.entity.Team;
-import ru.hits.car_school_automatization.entity.User;
+import ru.hits.car_school_automatization.entity.*;
 import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.enums.TeamType;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.mapper.TeamMapper;
+import ru.hits.car_school_automatization.repository.InviteRepository;
 import ru.hits.car_school_automatization.repository.TaskRepository;
 import ru.hits.car_school_automatization.repository.TeamRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
@@ -34,6 +32,8 @@ public class TeamService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final JwtTokenProvider tokenProvider;
+    private final InviteRepository inviteRepository;
+
     private final TeamMapper teamMapper;
 
     public TeamDto createTeam(CreateTeamDto dto, String authHeader) {
@@ -222,6 +222,118 @@ public class TeamService {
         }
 
         return requesterId;
+    }
+
+    public void inviteToTeam(UUID teamId, Long inviteeId, String authHeader) {
+        Long inviterId = tokenProvider.extractUserIdFromHeader(authHeader);
+
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new NotFoundException("Команда не найдена"));
+
+        if (team.getTask().getTeamType() != TeamType.FREE) {
+            throw new BadRequestException("Приглашения доступны только для FREE-режима");
+        }
+
+        boolean isInviterInTeam = team.getUsers().stream()
+                .anyMatch(u -> u.getId().equals(inviterId));
+        if (!isInviterInTeam) {
+            throw new ForbiddenException("Вы не состоите в этой команде");
+        }
+
+        User invitee = userRepository.findById(inviteeId)
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
+        if (!invitee.getRole().contains(Role.STUDENT)) {
+            throw new BadRequestException("Приглашать можно только студентов");
+        }
+
+        boolean alreadyInTeam = team.getUsers().stream()
+                .anyMatch(u -> u.getId().equals(inviteeId));
+        if (alreadyInTeam) {
+            throw new BadRequestException("Студент уже в этой команде");
+        }
+
+        boolean inAnotherTeam = teamRepository.existsByTask_IdAndUsers_IdAndIdNot(
+                team.getTask().getId(), inviteeId, teamId);
+        if (inAnotherTeam) {
+            throw new BadRequestException("Студент уже в другой команде этого задания");
+        }
+
+        if (inviteRepository.existsByTeamIdAndInviteeId(teamId, inviteeId)) {
+            throw new BadRequestException("Приглашение уже отправлено");
+        }
+
+        Invite invite = Invite.builder()
+                .team(team)
+                .inviterId(inviterId)
+                .inviteeId(inviteeId)
+                .build();
+
+        inviteRepository.save(invite);
+        log.info("Студент {} пригласил студента {} в команду {}", inviterId, inviteeId, teamId);
+    }
+
+    public TeamDto acceptInvite(UUID inviteId, String authHeader) {
+        Long userId = tokenProvider.extractUserIdFromHeader(authHeader);
+
+        Invite invite = inviteRepository.findById(inviteId)
+                .orElseThrow(() -> new NotFoundException("Приглашение не найдено"));
+
+        if (!invite.getInviteeId().equals(userId)) {
+            throw new ForbiddenException("Это приглашение не для вас");
+        }
+
+        Team team = invite.getTeam();
+
+        if (team.getTask().getTeamType() != TeamType.FREE) {
+            throw new BadRequestException("Режим задания изменился");
+        }
+
+        boolean alreadyInTeam = team.getUsers().stream()
+                .anyMatch(u -> u.getId().equals(userId));
+        if (alreadyInTeam) {
+            throw new BadRequestException("Вы уже в этой команде");
+        }
+
+        boolean inAnotherTeam = teamRepository.existsByTask_IdAndUsers_IdAndIdNot(
+                team.getTask().getId(), userId, team.getId());
+        if (inAnotherTeam) {
+            throw new BadRequestException("Вы уже в другой команде этого задания");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
+        team.getUsers().add(user);
+        teamRepository.save(team);
+
+        inviteRepository.delete(invite);
+
+        log.info("Студент {} принял приглашение и вступил в команду {}", userId, team.getId());
+
+        return teamMapper.toDto(team);
+    }
+
+    public void rejectInvite(UUID inviteId, String authHeader) {
+        Long userId = tokenProvider.extractUserIdFromHeader(authHeader);
+
+        Invite invite = inviteRepository.findById(inviteId)
+                .orElseThrow(() -> new NotFoundException("Приглашение не найдено"));
+
+        if (!invite.getInviteeId().equals(userId)) {
+            throw new ForbiddenException("Это приглашение не для вас");
+        }
+
+        inviteRepository.delete(invite);
+        log.info("Студент {} отклонил приглашение", userId);
+    }
+
+    public List<TeamDto> getMyInvites(String authHeader) {
+        Long userId = tokenProvider.extractUserIdFromHeader(authHeader);
+
+        List<Invite> invites = inviteRepository.findByInviteeId(userId);
+
+        return invites.stream()
+                .map(invite -> teamMapper.toDto(invite.getTeam()))
+                .toList();
     }
 
     private void validateTaskFree(Task task) {

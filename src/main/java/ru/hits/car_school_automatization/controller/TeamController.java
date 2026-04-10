@@ -102,4 +102,40 @@ public class TeamController {
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         teamService.deleteTeam(teamId, authHeader);
     }
+
+    @PostMapping("/{teamId}/invite/{userId}")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Пригласить студента в команду")
+    public void inviteToTeam(
+            @PathVariable UUID teamId,
+            @PathVariable Long userId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        teamService.inviteToTeam(teamId, userId, authHeader);
+    }
+
+    @PostMapping("/invites/{inviteId}/accept")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Принять приглашение")
+    public TeamDto acceptInvite(
+            @PathVariable UUID inviteId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return teamService.acceptInvite(inviteId, authHeader);
+    }
+
+    @DeleteMapping("/invites/{inviteId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Отклонить приглашение")
+    public void rejectInvite(
+            @PathVariable UUID inviteId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        teamService.rejectInvite(inviteId, authHeader);
+    }
+
+    @GetMapping("/invites/my")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Получить мои приглашения")
+    public List<TeamDto> getMyInvites(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return teamService.getMyInvites(authHeader);
+    }
 }
