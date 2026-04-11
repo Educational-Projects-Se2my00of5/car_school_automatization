@@ -166,7 +166,7 @@ public class TeamController {
     @GetMapping("/invites/my")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Получить мои приглашения")
-    public List<TeamDto> getMyInvites(
+    public List<InviteDto> getMyInvites(
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return teamService.getMyInvites(authHeader);
     }

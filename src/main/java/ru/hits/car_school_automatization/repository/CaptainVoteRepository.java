@@ -18,11 +18,11 @@ public interface CaptainVoteRepository extends JpaRepository<CaptainVote, UUID> 
 
     Optional<CaptainVote> findByTeamIdAndVoterId(UUID teamId, Long voterId);
 
-    @Query("SELECT cv.candidateId, COUNT(cv) FROM CaptainVote cv WHERE cv.teamId = :teamId GROUP BY cv.candidateId")
+    @Query("SELECT cv.candidateId, COUNT(cv) FROM CaptainVote cv WHERE cv.team.id = :teamId GROUP BY cv.candidateId")
     List<Object[]> countVotesByCandidate(@Param("teamId") UUID teamId);
 
     @Modifying
-    @Query("DELETE FROM CaptainVote cv WHERE cv.teamId = :teamId")
+    @Query("DELETE FROM CaptainVote cv WHERE cv.team.id = :teamId")
     void deleteByTeamId(@Param("teamId") UUID teamId);
 
     boolean existsByTeamId(UUID teamId);

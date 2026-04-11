@@ -539,13 +539,13 @@ public class TeamService {
         log.info("Студент {} отклонил приглашение", userId);
     }
 
-    public List<TeamDto> getMyInvites(String authHeader) {
+    public List<InviteDto> getMyInvites(String authHeader) {
         Long userId = tokenProvider.extractUserIdFromHeader(authHeader);
 
         List<Invite> invites = inviteRepository.findByInviteeId(userId);
 
         return invites.stream()
-                .map(invite -> teamMapper.toDto(invite.getTeam()))
+                .map(this::mapToInviteDto)
                 .toList();
     }
 
@@ -553,5 +553,18 @@ public class TeamService {
         if (task.getTeamType() != TeamType.FREE) {
             throw new BadRequestException("Самостоятельное вступление/выход доступны только для FREE-режима задания");
         }
+    }
+
+    private InviteDto mapToInviteDto(Invite invite) {
+        Team team = invite.getTeam();
+        User inviter = userRepository.findById(invite.getInviterId()).orElse(null);
+
+        return InviteDto.builder()
+                .id(invite.getId())
+                .teamId(team.getId())
+                .teamName(team.getName())
+                .inviterId(invite.getInviterId())
+                .inviterName(inviter != null ? inviter.getFirstName() + " " + inviter.getLastName() : null)
+                .build();
     }
 }
