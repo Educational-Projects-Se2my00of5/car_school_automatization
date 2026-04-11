@@ -52,6 +52,9 @@ public class Task {
     @Column(nullable = false)
     private TaskType type;
 
+    @Column(name = "is_anonymous_voting")
+    @Builder.Default
+    private Boolean isAnonymousVoting = false;
 
     @Column(nullable = false)
     private Integer minTeamSize;

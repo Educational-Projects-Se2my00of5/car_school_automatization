@@ -25,4 +25,5 @@ public class UpdateTaskDto {
     private Integer qualifiedMin;
     private Integer minTeamSize;
     private Instant votingDeadline;
+    private Boolean isAnonymousVoting;
 }

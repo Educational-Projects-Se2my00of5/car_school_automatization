@@ -700,7 +700,7 @@ class TeamServiceTest {
         when(inviteRepository.findByInviteeId(studentId)).thenReturn(List.of(invite1));
         when(teamMapper.toDto(team1)).thenReturn(TeamDto.builder().id(team1.getId()).name(team1.getName()).build());
 
-        List<TeamDto> result = teamService.getMyInvites(authHeader);
+        List<InviteDto> result = teamService.getMyInvites(authHeader);
 
         assertEquals(1, result.size());
     }
@@ -711,7 +711,7 @@ class TeamServiceTest {
         when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(studentId);
         when(inviteRepository.findByInviteeId(studentId)).thenReturn(List.of());
 
-        List<TeamDto> result = teamService.getMyInvites(authHeader);
+        List<InviteDto> result = teamService.getMyInvites(authHeader);
 
         assertTrue(result.isEmpty());
     }

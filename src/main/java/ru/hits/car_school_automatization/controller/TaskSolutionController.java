@@ -7,20 +7,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
-import ru.hits.car_school_automatization.dto.CreateTaskSolutionDto;
-import ru.hits.car_school_automatization.dto.TaskSolutionDto;
-import ru.hits.car_school_automatization.dto.UpdateTaskSolutionDto;
+import org.springframework.web.bind.annotation.*;
+import ru.hits.car_school_automatization.dto.*;
 import ru.hits.car_school_automatization.service.TaskSolutionService;
 
 import java.util.List;
@@ -89,5 +77,56 @@ public class TaskSolutionController {
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader
     ) {
         taskSolutionService.delete(solutionId, authHeader);
+    }
+
+    @PostMapping("/vote")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Проголосовать за решение")
+    public SolutionVoteDto vote(
+            @RequestBody @Valid CreateSolutionVoteDto dto,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return taskSolutionService.vote(dto, authHeader);
+    }
+
+    @GetMapping("/vote/my/{taskId}")
+    @Operation(summary = "Получить мой голос по заданию")
+    public SolutionVoteDto getMyVote(
+            @PathVariable UUID taskId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return taskSolutionService.getMyVote(taskId, authHeader);
+    }
+
+    @DeleteMapping("/vote/{taskId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Отменить мой голос")
+    public void cancelVote(
+            @PathVariable UUID taskId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        taskSolutionService.cancelVote(taskId, authHeader);
+    }
+
+    @GetMapping("/{taskId}/voting-results")
+    @Operation(summary = "Получить результаты голосования")
+    public VotingResultsDto getVotingResults(
+            @PathVariable UUID taskId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return taskSolutionService.getVotingResults(taskId, authHeader);
+    }
+
+    @PostMapping("/{taskId}/select-accepted")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Автоматический выбор принятого решения (по типу задания)")
+    public TaskSolutionDto selectAcceptedSolution(
+            @PathVariable UUID taskId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return taskSolutionService.selectAcceptedSolution(taskId, authHeader);
+    }
+
+    @GetMapping("/{taskId}/selected-solution")
+    @Operation(summary = "Получить выбранное решение для задания")
+    public TaskSolutionDto getSelectedSolution(
+            @PathVariable UUID taskId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return taskSolutionService.getSelectedSolution(taskId, authHeader);
     }
 }
