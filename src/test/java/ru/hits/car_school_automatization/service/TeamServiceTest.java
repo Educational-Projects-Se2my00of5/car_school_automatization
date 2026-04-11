@@ -693,12 +693,19 @@ class TeamServiceTest {
     @DisplayName("getMyInvites: получение моих приглашений")
     void getMyInvites_ShouldReturnMyInvites() {
         Team team1 = Team.builder().id(UUID.randomUUID()).name("Team 1").build();
+        Long inviterId = 500L;
+        User inviter = User.builder().id(inviterId).firstName("Inviter").lastName("User").build();
 
-        Invite invite1 = Invite.builder().id(UUID.randomUUID()).team(team1).inviteeId(studentId).build();
+        Invite invite1 = Invite.builder()
+                .id(UUID.randomUUID())
+                .team(team1)
+                .inviteeId(studentId)
+                .inviterId(inviterId)
+                .build();
 
         when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(studentId);
         when(inviteRepository.findByInviteeId(studentId)).thenReturn(List.of(invite1));
-        when(teamMapper.toDto(team1)).thenReturn(TeamDto.builder().id(team1.getId()).name(team1.getName()).build());
+        when(userRepository.findById(inviterId)).thenReturn(Optional.of(inviter));
 
         List<InviteDto> result = teamService.getMyInvites(authHeader);
 
@@ -714,5 +721,93 @@ class TeamServiceTest {
         List<InviteDto> result = teamService.getMyInvites(authHeader);
 
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @DisplayName("setTeamMark: преподаватель может выставить оценку")
+    void setTeamMark_ShouldSuccess() {
+        UUID teamId = UUID.randomUUID();
+        Float mark = 4.5f;
+
+        Team team = Team.builder()
+                .id(teamId)
+                .task(task)
+                .users(new HashSet<>(Set.of(student)))
+                .build();
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(teacherId);
+        when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
+        when(teamRepository.save(any(Team.class))).thenReturn(team);
+        when(teamMapper.toDto(any(Team.class))).thenReturn(TeamDto.builder().id(teamId).mark(mark).build());
+
+        TeamDto result = teamService.setTeamMark(teamId, mark, authHeader);
+
+        assertNotNull(result);
+        assertEquals(mark, result.getMark());
+        verify(teamRepository).save(team);
+    }
+
+    @Test
+    @DisplayName("setTeamMark: не преподаватель не может выставить оценку")
+    void setTeamMark_NotTeacher_ShouldThrowForbidden() {
+        UUID teamId = UUID.randomUUID();
+        Float mark = 4.5f;
+
+        Team team = Team.builder().id(teamId).task(task).build();
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(studentId);
+        when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
+
+        assertThrows(ForbiddenException.class, () -> teamService.setTeamMark(teamId, mark, authHeader));
+    }
+
+    @Test
+    @DisplayName("setTeamMark: оценка вне диапазона вызывает ошибку")
+    void setTeamMark_InvalidMark_ShouldThrowBadRequest() {
+        UUID teamId = UUID.randomUUID();
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(teacherId);
+        when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(Team.builder().id(teamId).task(task).build()));
+
+        assertThrows(BadRequestException.class, () -> teamService.setTeamMark(teamId, 0f, authHeader));
+        assertThrows(BadRequestException.class, () -> teamService.setTeamMark(teamId, 6f, authHeader));
+    }
+
+    @Test
+    @DisplayName("getTeamMark: студент может получить оценку своей команды")
+    void getTeamMark_ShouldReturnMark() {
+        UUID teamId = UUID.randomUUID();
+        Float expectedMark = 4.5f;
+
+        Channel testChannel = new Channel(
+                UUID.randomUUID(),
+                "Channel",
+                "Desc",
+                null,
+                new HashSet<>(Set.of(student, teacher)),
+                teacher
+        );
+
+        Task testTask = Task.builder()
+                .id(taskId)
+                .channel(testChannel)
+                .build();
+
+        Team team = Team.builder()
+                .id(teamId)
+                .task(testTask)
+                .mark(expectedMark)
+                .users(new HashSet<>(Set.of(student)))
+                .build();
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(studentId);
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
+
+        Float result = teamService.getTeamMark(teamId, authHeader);
+
+        assertEquals(expectedMark, result);
     }
 }
