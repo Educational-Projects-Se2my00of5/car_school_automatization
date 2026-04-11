@@ -102,6 +102,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/task-solutions/*/select-accepted").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solution").authenticated()
 
+                        .requestMatchers(HttpMethod.POST, "/api/teams/*/mark").hasRole("TEACHER")
+                        .requestMatchers(HttpMethod.GET, "/api/teams/*/mark").authenticated()
+
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthFilter, BasicAuthenticationFilter.class);

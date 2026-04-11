@@ -549,6 +549,54 @@ public class TeamService {
                 .toList();
     }
 
+    public TeamDto setTeamMark(UUID teamId, Float mark, String authHeader) {
+        Long teacherId = tokenProvider.extractUserIdFromHeader(authHeader);
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
+
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new NotFoundException("Команда не найдена"));
+
+        validateTeacherLeadsTaskChannel(authHeader, team.getTask());
+
+        if (mark == null) {
+            throw new BadRequestException("Оценка не может быть null");
+        }
+
+        if (mark < 1 || mark > 5) {
+            throw new BadRequestException("Оценка должна быть от 1 до 5");
+        }
+
+        team.setMark(mark);
+        Team saved = teamRepository.save(team);
+        log.info("Преподаватель {} выставил командную оценку {} для команды {}", teacherId, mark, teamId);
+
+        return teamMapper.toDto(saved);
+    }
+
+    public Float getTeamMark(UUID teamId, String authHeader) {
+        Long userId = tokenProvider.extractUserIdFromHeader(authHeader);
+
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new NotFoundException("Команда не найдена"));
+
+        boolean inChannel = team.getTask().getChannel().getUsers().stream()
+                .anyMatch(u -> u.getId().equals(userId));
+
+        if (!inChannel) {
+            throw new ForbiddenException("У вас нет доступа к этой команде");
+        }
+
+        boolean inTeam = team.getUsers().stream()
+                .anyMatch(u -> u.getId().equals(userId));
+
+        if (!inTeam) {
+            throw new ForbiddenException("Вы не состоите в этой команде");
+        }
+
+        return team.getMark();
+    }
+
     private void validateTaskFree(Task task) {
         if (task.getTeamType() != TeamType.FREE) {
             throw new BadRequestException("Самостоятельное вступление/выход доступны только для FREE-режима задания");
