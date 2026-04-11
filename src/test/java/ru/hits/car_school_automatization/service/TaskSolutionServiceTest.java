@@ -8,22 +8,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
-import ru.hits.car_school_automatization.dto.CreateTaskSolutionDto;
-import ru.hits.car_school_automatization.dto.TaskSolutionDto;
-import ru.hits.car_school_automatization.dto.UpdateTaskSolutionDto;
-import ru.hits.car_school_automatization.entity.Channel;
-import ru.hits.car_school_automatization.entity.Task;
-import ru.hits.car_school_automatization.entity.TaskDocument;
-import ru.hits.car_school_automatization.entity.TaskSolution;
-import ru.hits.car_school_automatization.entity.User;
+import ru.hits.car_school_automatization.dto.*;
+import ru.hits.car_school_automatization.entity.*;
 import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.enums.TaskType;
 import ru.hits.car_school_automatization.enums.TeamType;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
-import ru.hits.car_school_automatization.repository.TaskRepository;
-import ru.hits.car_school_automatization.repository.TaskSolutionRepository;
-import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.repository.*;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -32,16 +24,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TaskSolutionServiceTest {
@@ -60,6 +46,12 @@ class TaskSolutionServiceTest {
 
     @Mock
     private FileStorageService fileStorageService;
+
+    @Mock
+    private TeamRepository teamRepository;
+
+    @Mock
+    private SolutionVoteRepository solutionVoteRepository;
 
     @InjectMocks
     private TaskSolutionService taskSolutionService;
@@ -289,5 +281,268 @@ class TaskSolutionServiceTest {
 
         assertEquals(2, result.size());
         verify(taskSolutionRepository).findByStudentIdOrderByCreatedAtDesc(studentId);
+    }
+
+    @Test
+    @DisplayName("vote: студент может проголосовать за решение")
+    void vote_ShouldSuccess() {
+        UUID voteTaskId = taskId;
+        UUID voteSolutionId = UUID.randomUUID();
+        Long voterId = studentId;
+
+        task.setType(TaskType.DEMOCRATIC);
+
+        TaskSolution solution = TaskSolution.builder()
+                .id(voteSolutionId)
+                .taskId(voteTaskId)
+                .studentId(300L)
+                .build();
+
+        Team team = Team.builder()
+                .id(UUID.randomUUID())
+                .users(new HashSet<>(Set.of(student)))
+                .build();
+
+        CreateSolutionVoteDto dto = CreateSolutionVoteDto.builder()
+                .taskId(voteTaskId)
+                .solutionId(voteSolutionId)
+                .build();
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(voterId);
+        when(userRepository.findById(voterId)).thenReturn(Optional.of(student));
+        when(taskRepository.findById(voteTaskId)).thenReturn(Optional.of(task));
+        when(teamRepository.findByTask_IdAndUsers_Id(voteTaskId, voterId)).thenReturn(Optional.of(team));
+        when(taskSolutionRepository.findById(voteSolutionId)).thenReturn(Optional.of(solution));
+        when(solutionVoteRepository.existsByTaskIdAndVoterId(voteTaskId, voterId)).thenReturn(false);
+        when(solutionVoteRepository.save(any(SolutionVote.class))).thenAnswer(i -> i.getArgument(0));
+
+        SolutionVoteDto result = taskSolutionService.vote(dto, authHeader);
+
+        assertNotNull(result);
+        assertEquals(voteTaskId, result.getTaskId());
+        assertEquals(voteSolutionId, result.getSolutionId());
+        assertEquals(voterId, result.getVoterId());
+        verify(solutionVoteRepository).save(any(SolutionVote.class));
+    }
+
+    @Test
+    @DisplayName("vote: нельзя голосовать за своё решение")
+    void vote_ForOwnSolution_ShouldThrowBadRequest() {
+        UUID voteTaskId = taskId;
+        UUID voteSolutionId = UUID.randomUUID();
+        Long voterId = studentId;
+
+        task.setType(TaskType.DEMOCRATIC);
+
+        TaskSolution solution = TaskSolution.builder()
+                .id(voteSolutionId)
+                .taskId(voteTaskId)
+                .studentId(voterId)
+                .build();
+
+        Team team = Team.builder()
+                .id(UUID.randomUUID())
+                .users(new HashSet<>(Set.of(student)))
+                .build();
+
+        CreateSolutionVoteDto dto = CreateSolutionVoteDto.builder()
+                .taskId(voteTaskId)
+                .solutionId(voteSolutionId)
+                .build();
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(voterId);
+        when(userRepository.findById(voterId)).thenReturn(Optional.of(student));
+        when(taskRepository.findById(voteTaskId)).thenReturn(Optional.of(task));
+        when(teamRepository.findByTask_IdAndUsers_Id(voteTaskId, voterId)).thenReturn(Optional.of(team));
+        when(taskSolutionRepository.findById(voteSolutionId)).thenReturn(Optional.of(solution));
+
+        assertThrows(BadRequestException.class, () -> taskSolutionService.vote(dto, authHeader));
+        verify(solutionVoteRepository, never()).save(any(SolutionVote.class));
+    }
+
+    @Test
+    @DisplayName("vote: повторное голосование запрещено")
+    void vote_AlreadyVoted_ShouldThrowBadRequest() {
+        UUID voteTaskId = taskId;
+        UUID voteSolutionId = UUID.randomUUID();
+        Long voterId = studentId;
+
+        TaskSolution solution = TaskSolution.builder()
+                .id(voteSolutionId)
+                .taskId(voteTaskId)
+                .studentId(300L)
+                .build();
+
+        task.setType(TaskType.DEMOCRATIC);
+
+        Team team = Team.builder()
+                .id(UUID.randomUUID())
+                .users(new HashSet<>(Set.of(student)))
+                .build();
+
+        CreateSolutionVoteDto dto = CreateSolutionVoteDto.builder()
+                .taskId(voteTaskId)
+                .solutionId(voteSolutionId)
+                .build();
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(voterId);
+        when(userRepository.findById(voterId)).thenReturn(Optional.of(student));
+        when(taskRepository.findById(voteTaskId)).thenReturn(Optional.of(task));
+        when(teamRepository.findByTask_IdAndUsers_Id(voteTaskId, voterId)).thenReturn(Optional.of(team));
+        when(taskSolutionRepository.findById(voteSolutionId)).thenReturn(Optional.of(solution));
+        when(solutionVoteRepository.existsByTaskIdAndVoterId(voteTaskId, voterId)).thenReturn(true);
+
+        assertThrows(BadRequestException.class, () -> taskSolutionService.vote(dto, authHeader));
+        verify(solutionVoteRepository, never()).save(any(SolutionVote.class));
+    }
+
+    @Test
+    @DisplayName("cancelVote: студент может отменить свой голос")
+    void cancelVote_ShouldSuccess() {
+        UUID voteTaskId = taskId;
+        Long voterId = studentId;
+
+        SolutionVote vote = SolutionVote.builder()
+                .id(UUID.randomUUID())
+                .taskId(voteTaskId)
+                .voterId(voterId)
+                .build();
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(voterId);
+        when(taskRepository.findById(voteTaskId)).thenReturn(Optional.of(task));
+        when(solutionVoteRepository.findByTaskIdAndVoterId(voteTaskId, voterId)).thenReturn(Optional.of(vote));
+
+        taskSolutionService.cancelVote(voteTaskId, authHeader);
+
+        verify(solutionVoteRepository).delete(vote);
+    }
+
+    @Test
+    @DisplayName("selectAcceptedSolution: FIRST - выбирает первое решение")
+    void selectAcceptedSolution_FirstType_ShouldSelectFirstSolution() {
+        UUID selectTaskId = taskId;
+        Long userId = studentId;
+
+        Task selectTask = Task.builder()
+                .id(selectTaskId)
+                .type(TaskType.FIRST)
+                .channel(task.getChannel())
+                .minTeamSize(2)
+                .isCanRedistribute(false)
+                .build();
+
+        Team team = Team.builder()
+                .id(UUID.randomUUID())
+                .users(new HashSet<>(Set.of(student)))
+                .build();
+
+        TaskSolution firstSolution = TaskSolution.builder()
+                .id(UUID.randomUUID())
+                .taskId(selectTaskId)
+                .studentId(userId)
+                .createdAt(Instant.now().minusSeconds(60))
+                .build();
+
+        TaskSolution secondSolution = TaskSolution.builder()
+                .id(UUID.randomUUID())
+                .taskId(selectTaskId)
+                .studentId(300L)
+                .createdAt(Instant.now())
+                .build();
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(student));
+        when(taskRepository.findById(selectTaskId)).thenReturn(Optional.of(selectTask));
+        when(teamRepository.findByTask_IdAndUsers_Id(selectTaskId, userId)).thenReturn(Optional.of(team));
+        when(taskSolutionRepository.findByTaskId(selectTaskId)).thenReturn(List.of(firstSolution, secondSolution));
+        when(taskSolutionRepository.save(any(TaskSolution.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        taskSolutionService.selectAcceptedSolution(selectTaskId, authHeader);
+
+        verify(taskSolutionRepository).unselectAllByTaskId(selectTaskId);
+        verify(taskSolutionRepository).save(argThat(s -> s.getIsSelected() == true && s.getId().equals(firstSolution.getId())));
+    }
+
+    @Test
+    @DisplayName("selectAcceptedSolution: DEMOCRATIC - выбирает решение с max голосами")
+    void selectAcceptedSolution_DemocraticType_ShouldSelectSolutionWithMaxVotes() {
+        UUID selectTaskId = taskId;
+        Long userId = studentId;
+
+        Task selectTask = Task.builder()
+                .id(selectTaskId)
+                .type(TaskType.DEMOCRATIC)
+                .channel(task.getChannel())
+                .minTeamSize(2)
+                .isCanRedistribute(false)
+                .build();
+
+        Team team = Team.builder()
+                .id(UUID.randomUUID())
+                .users(new HashSet<>(Set.of(student)))
+                .build();
+
+        UUID solution1Id = UUID.randomUUID();
+        UUID solution2Id = UUID.randomUUID();
+
+        TaskSolution solution1 = TaskSolution.builder().id(solution1Id).taskId(selectTaskId).studentId(300L).build();
+        TaskSolution solution2 = TaskSolution.builder().id(solution2Id).taskId(selectTaskId).studentId(400L).build();
+
+        TaskSolution selectedSolution = TaskSolution.builder()
+                .id(solution2Id)
+                .taskId(selectTaskId)
+                .studentId(400L)
+                .isSelected(true)
+                .build();
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(student));
+        when(taskRepository.findById(selectTaskId)).thenReturn(Optional.of(selectTask));
+        when(teamRepository.findByTask_IdAndUsers_Id(selectTaskId, userId)).thenReturn(Optional.of(team));
+        when(taskSolutionRepository.findByTaskId(selectTaskId)).thenReturn(List.of(solution1, solution2));
+        when(solutionVoteRepository.countVotesBySolution(selectTaskId))
+                .thenReturn(List.of(new Object[]{solution2Id, 3L}, new Object[]{solution1Id, 1L}));
+        when(taskSolutionRepository.save(any(TaskSolution.class))).thenAnswer(invocation -> {
+            TaskSolution saved = invocation.getArgument(0);
+            saved.setId(saved.getId() != null ? saved.getId() : UUID.randomUUID());
+            return saved;
+        });
+
+        taskSolutionService.selectAcceptedSolution(selectTaskId, authHeader);
+
+        verify(taskSolutionRepository).unselectAllByTaskId(selectTaskId);
+        verify(taskSolutionRepository).save(argThat(s -> s.getIsSelected() == true && s.getId().equals(solution2Id)));
+    }
+
+    @Test
+    @DisplayName("getSelectedSolution: возвращает выбранное решение")
+    void getSelectedSolution_ShouldReturnSelectedSolution() {
+        TaskSolution selectedSolution = TaskSolution.builder()
+                .id(solutionId)
+                .taskId(taskId)
+                .studentId(studentId)
+                .isSelected(true)
+                .build();
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(studentId);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(taskSolutionRepository.findByTaskIdAndIsSelectedTrue(taskId)).thenReturn(Optional.of(selectedSolution));
+
+        TaskSolutionDto result = taskSolutionService.getSelectedSolution(taskId, authHeader);
+
+        assertNotNull(result);
+        assertEquals(solutionId, result.getId());
+    }
+
+    @Test
+    @DisplayName("getSelectedSolution: если решения нет - возвращает null")
+    void getSelectedSolution_NoSelectedSolution_ShouldReturnNull() {
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(studentId);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(taskSolutionRepository.findByTaskIdAndIsSelectedTrue(taskId)).thenReturn(Optional.empty());
+
+        TaskSolutionDto result = taskSolutionService.getSelectedSolution(taskId, authHeader);
+
+        assertNull(result);
     }
 }

@@ -39,6 +39,9 @@ public class TaskSolution {
     @Column(name = "student_id", nullable = false)
     private Long studentId;
 
+    @Column(name = "is_selected")
+    private Boolean isSelected;
+
     @ElementCollection
     @CollectionTable(name = "task_solution_documents", joinColumns = @JoinColumn(name = "task_solution_id"))
     @Builder.Default

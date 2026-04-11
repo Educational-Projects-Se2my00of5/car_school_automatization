@@ -27,6 +27,8 @@ public class CreateTaskDto {
 
     private List<MultipartFile> documents;
 
+    private Boolean isAnonymousVoting;
+
     @NotNull
     private TeamType teamType;
 
