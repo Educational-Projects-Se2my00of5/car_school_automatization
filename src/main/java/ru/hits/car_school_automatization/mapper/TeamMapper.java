@@ -9,7 +9,10 @@ import ru.hits.car_school_automatization.dto.TeamDto;
 import ru.hits.car_school_automatization.dto.UpdateTeamDto;
 import ru.hits.car_school_automatization.dto.UserShortDto;
 import ru.hits.car_school_automatization.entity.Team;
+import ru.hits.car_school_automatization.entity.User;
 
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,8 +36,14 @@ public interface TeamMapper {
         if (team.getUsers() == null) {
             return Set.of();
         }
+
+        Comparator<User> byNameThenSurname = Comparator
+                .comparing(User::getFirstName, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+                .thenComparing(User::getLastName, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER));
+
         return team.getUsers().stream()
+                .sorted(byNameThenSurname)
                 .map(UserMapperKt::toShort)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }

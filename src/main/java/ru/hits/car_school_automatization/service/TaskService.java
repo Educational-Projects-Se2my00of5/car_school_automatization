@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.CreateTaskDto;
 import ru.hits.car_school_automatization.dto.TaskDto;
 import ru.hits.car_school_automatization.dto.UpdateTaskDto;
+import ru.hits.car_school_automatization.dto.UserShortDto;
 import ru.hits.car_school_automatization.entity.Channel;
 import ru.hits.car_school_automatization.entity.Task;
 import ru.hits.car_school_automatization.entity.TaskDocument;
@@ -17,6 +18,7 @@ import ru.hits.car_school_automatization.enums.TaskType;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
+import ru.hits.car_school_automatization.mapper.UserMapperKt;
 import ru.hits.car_school_automatization.mapper.TaskMapper;
 import ru.hits.car_school_automatization.repository.ChannelRepository;
 import ru.hits.car_school_automatization.repository.TaskRepository;
@@ -24,9 +26,12 @@ import ru.hits.car_school_automatization.repository.TeamRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -95,6 +100,28 @@ public class TaskService {
 
         validateUserInChannel(authHeader, task.getChannel());
         return taskMapper.toDto(task);
+    }
+
+    @Transactional
+    public List<UserShortDto> getStudentsWithoutTeam(UUID taskId, String authHeader) {
+    Task task = taskRepository.findById(taskId)
+        .orElseThrow(() -> new NotFoundException("Задание с id " + taskId + " не найдено"));
+
+    validateUserInChannel(authHeader, task.getChannel());
+
+    Set<Long> usersInTeams = teamRepository.findByTask_Id(taskId).stream()
+        .flatMap(team -> team.getUsers().stream())
+        .map(User::getId)
+        .collect(Collectors.toSet());
+
+    return task.getChannel().getUsers().stream()
+        .filter(user -> user.getRole().contains(Role.STUDENT))
+        .filter(user -> !usersInTeams.contains(user.getId()))
+        .sorted(Comparator
+            .comparing(User::getFirstName, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+            .thenComparing(User::getLastName, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)))
+        .map(UserMapperKt::toShort)
+        .toList();
     }
 
     @Transactional

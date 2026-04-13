@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.hits.car_school_automatization.dto.CreateTaskDto;
 import ru.hits.car_school_automatization.dto.TaskDto;
 import ru.hits.car_school_automatization.dto.UpdateTaskDto;
+import ru.hits.car_school_automatization.dto.UserShortDto;
 import ru.hits.car_school_automatization.service.TaskService;
 
 import java.util.List;
@@ -50,6 +51,15 @@ public class TaskController {
     public TaskDto getTask(@PathVariable UUID taskId,
                            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return taskService.getTask(taskId, authHeader);
+    }
+
+    @GetMapping("/{taskId}/students/without-team")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Получить студентов задания без команды")
+    public List<UserShortDto> getStudentsWithoutTeam(
+            @PathVariable UUID taskId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return taskService.getStudentsWithoutTeam(taskId, authHeader);
     }
 
     @GetMapping("/channel/{channelId}")

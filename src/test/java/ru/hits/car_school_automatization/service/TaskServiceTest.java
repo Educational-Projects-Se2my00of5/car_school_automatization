@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.CreateTaskDto;
 import ru.hits.car_school_automatization.dto.TaskDto;
 import ru.hits.car_school_automatization.dto.UpdateTaskDto;
+import ru.hits.car_school_automatization.dto.UserShortDto;
 import ru.hits.car_school_automatization.entity.Channel;
 import ru.hits.car_school_automatization.entity.Task;
 import ru.hits.car_school_automatization.entity.TaskDocument;
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -273,6 +275,56 @@ class TaskServiceTest {
         when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(999L);
 
         assertThrows(ForbiddenException.class, () -> taskService.getTask(taskId, authHeader));
+    }
+
+    @Test
+    @DisplayName("getStudentsWithoutTeam: возвращает только студентов предмета без команды")
+    void getStudentsWithoutTeam_ShouldReturnOnlyStudentsWithoutTeam() {
+    Long studentInTeamId = 20L;
+    Long studentWithoutTeamId = 21L;
+    Long teacherInChannelId = 22L;
+
+    User studentInTeam = User.builder()
+        .id(studentInTeamId)
+        .firstName("Alex")
+        .lastName("Brown")
+        .email("alex@test.ru")
+        .role(List.of(Role.STUDENT))
+        .build();
+
+    User studentWithoutTeam = User.builder()
+        .id(studentWithoutTeamId)
+        .firstName("Bob")
+        .lastName("Carter")
+        .email("bob@test.ru")
+        .role(List.of(Role.STUDENT))
+        .build();
+
+    User teacherInChannel = User.builder()
+        .id(teacherInChannelId)
+        .firstName("Teacher")
+        .lastName("One")
+        .email("teacher@test.ru")
+        .role(List.of(Role.TEACHER))
+        .build();
+
+    channel.setUsers(new HashSet<>(Set.of(teacher, studentInTeam, studentWithoutTeam, teacherInChannel)));
+
+    Team team = Team.builder()
+        .id(UUID.randomUUID())
+        .task(existingTask)
+        .users(new HashSet<>(Set.of(studentInTeam)))
+        .build();
+
+    when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
+    when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(teacherId);
+    when(teamRepository.findByTask_Id(taskId)).thenReturn(List.of(team));
+
+    List<UserShortDto> result = taskService.getStudentsWithoutTeam(taskId, authHeader);
+
+    assertEquals(1, result.size());
+    assertEquals(studentWithoutTeamId, result.get(0).getId());
+    assertFalse(result.stream().anyMatch(user -> user.getId() == studentInTeamId));
     }
 
     @Test
