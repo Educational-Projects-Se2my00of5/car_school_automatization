@@ -15,6 +15,7 @@ import java.util.List;
 public interface TaskMapper {
 
     @Mapping(target = "channelId", source = "channel.id")
+    @Mapping(target = "teams", source = "teams", qualifiedByName = "toSortedDtoListFromSet")
     TaskDto toDto(Task task);
 
     List<TaskDto> toDtoList(List<Task> tasks);

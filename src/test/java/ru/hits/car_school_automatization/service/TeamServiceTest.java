@@ -617,6 +617,77 @@ class TeamServiceTest {
                 () -> teamService.inviteToTeam(teamId, anotherStudentId, authHeader));
     }
 
+        @Test
+        @DisplayName("getAvailableInvitees: возвращает отсортированный список доступных студентов")
+        void getAvailableInvitees_ShouldReturnSortedAndFilteredStudents() {
+        Long availableAId = 401L;
+        Long availableBId = 402L;
+        Long inAnotherTeamId = 403L;
+        Long alreadyInvitedId = 404L;
+
+        User availableA = User.builder()
+            .id(availableAId)
+            .firstName("Boris")
+            .lastName("One")
+            .email("boris@test.ru")
+            .role(List.of(Role.STUDENT))
+            .build();
+
+        User availableB = User.builder()
+            .id(availableBId)
+            .firstName("Anna")
+            .lastName("Two")
+            .email("anna@test.ru")
+            .role(List.of(Role.STUDENT))
+            .build();
+
+        User inAnotherTeam = User.builder()
+            .id(inAnotherTeamId)
+            .firstName("Chris")
+            .lastName("Three")
+            .email("chris@test.ru")
+            .role(List.of(Role.STUDENT))
+            .build();
+
+        User alreadyInvited = User.builder()
+            .id(alreadyInvitedId)
+            .firstName("Den")
+            .lastName("Four")
+            .email("den@test.ru")
+            .role(List.of(Role.STUDENT))
+            .build();
+
+        task.getChannel().getUsers().add(availableA);
+        task.getChannel().getUsers().add(availableB);
+        task.getChannel().getUsers().add(inAnotherTeam);
+        task.getChannel().getUsers().add(alreadyInvited);
+
+        Team teamWithUsers = Team.builder()
+            .id(teamId)
+            .task(task)
+            .users(new HashSet<>(Set.of(student)))
+            .build();
+        task.setTeamType(TeamType.FREE);
+
+        when(tokenProvider.extractUserIdFromHeader(authHeader)).thenReturn(studentId);
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUsers));
+
+        when(teamRepository.existsByTask_IdAndUsers_IdAndIdNot(taskId, availableAId, teamId)).thenReturn(false);
+        when(teamRepository.existsByTask_IdAndUsers_IdAndIdNot(taskId, availableBId, teamId)).thenReturn(false);
+        when(teamRepository.existsByTask_IdAndUsers_IdAndIdNot(taskId, inAnotherTeamId, teamId)).thenReturn(true);
+        when(teamRepository.existsByTask_IdAndUsers_IdAndIdNot(taskId, alreadyInvitedId, teamId)).thenReturn(false);
+
+        when(inviteRepository.existsByTeamIdAndInviteeId(teamId, availableAId)).thenReturn(false);
+        when(inviteRepository.existsByTeamIdAndInviteeId(teamId, availableBId)).thenReturn(false);
+        when(inviteRepository.existsByTeamIdAndInviteeId(teamId, alreadyInvitedId)).thenReturn(true);
+
+        List<UserShortDto> result = teamService.getAvailableInvitees(teamId, authHeader);
+
+        assertEquals(2, result.size());
+        assertEquals(availableBId, result.get(0).getId());
+        assertEquals(availableAId, result.get(1).getId());
+        }
+
     @Test
     @DisplayName("acceptInvite: успешное принятие приглашения")
     void acceptInvite_ShouldSuccess() {

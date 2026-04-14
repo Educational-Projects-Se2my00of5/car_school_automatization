@@ -19,6 +19,7 @@ import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.mapper.TeamMapper;
+import ru.hits.car_school_automatization.mapper.UserMapperKt;
 import ru.hits.car_school_automatization.repository.InviteRepository;
 import ru.hits.car_school_automatization.mapper.UserMapper;
 import ru.hits.car_school_automatization.repository.CaptainVoteRepository;
@@ -28,6 +29,7 @@ import ru.hits.car_school_automatization.repository.UserRepository;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -116,7 +118,7 @@ public class TeamService {
             throw new NotFoundException("Задание с id " + taskId + " не найдено");
         }
 
-        return teamMapper.toDtoList(teamRepository.findByTask_Id(taskId));
+        return teamMapper.toSortedDtoList(teamRepository.findByTask_Id(taskId));
     }
 
     public TeamDto addMember(UUID teamId, Long userId, String authHeader) {
@@ -483,6 +485,37 @@ public class TeamService {
 
         inviteRepository.save(invite);
         log.info("Студент {} пригласил студента {} в команду {}", inviterId, inviteeId, teamId);
+    }
+
+    public List<UserShortDto> getAvailableInvitees(UUID teamId, String authHeader) {
+        Long inviterId = tokenProvider.extractUserIdFromHeader(authHeader);
+
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new NotFoundException("Команда не найдена"));
+
+        if (team.getTask().getTeamType() != TeamType.FREE) {
+            throw new BadRequestException("Приглашения доступны только для FREE-режима");
+        }
+
+        boolean isInviterInTeam = team.getUsers().stream()
+                .anyMatch(u -> u.getId().equals(inviterId));
+        if (!isInviterInTeam) {
+            throw new ForbiddenException("Вы не состоите в этой команде");
+        }
+
+        UUID taskId = team.getTask().getId();
+
+        return team.getTask().getChannel().getUsers().stream()
+                .filter(user -> user.getRole().contains(Role.STUDENT))
+                .filter(user -> team.getUsers().stream().noneMatch(member -> member.getId().equals(user.getId())))
+                .filter(user -> !teamRepository.existsByTask_IdAndUsers_IdAndIdNot(taskId, user.getId(), teamId))
+                .filter(user -> !inviteRepository.existsByTeamIdAndInviteeId(teamId, user.getId()))
+                .sorted(Comparator
+                        .comparing(User::getFirstName, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+                        .thenComparing(User::getLastName, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+                        .thenComparing(User::getId, Comparator.nullsFirst(Long::compareTo)))
+                .map(UserMapperKt::toShort)
+                .toList();
     }
 
     public TeamDto acceptInvite(UUID inviteId, String authHeader) {

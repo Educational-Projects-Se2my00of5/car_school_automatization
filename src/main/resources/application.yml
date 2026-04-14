@@ -20,6 +20,7 @@ jwt:
   secret: eW91ci12ZXJ5LXNlY3JldC1rZXktdGhhdC1zaG91bGQtYmUtYXQtbGVhc3QtMjU2LWJpdHMtbG9uZy1mb3ItaHMyNTYtYWxnb3JpdGhtCg==
   expiration: 86400000
 
+
 file:
   path: ./upload-dir
 
@@ -28,3 +29,5 @@ logging:
     org:
       springframework:
         security=DEBUG:
+server:
+  port: 8081

@@ -145,6 +145,15 @@ public class TeamController {
         teamService.inviteToTeam(teamId, userId, authHeader);
     }
 
+    @GetMapping("/{teamId}/invite/available")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Получить список пользователей, которых можно пригласить в команду")
+    public List<UserShortDto> getAvailableInvitees(
+            @PathVariable UUID teamId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return teamService.getAvailableInvitees(teamId, authHeader);
+    }
+
     @PostMapping("/invites/{inviteId}/accept")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Принять приглашение")
