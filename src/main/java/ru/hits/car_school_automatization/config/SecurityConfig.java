@@ -100,6 +100,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/voting-results").authenticated()
 
                         .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solution").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solutions").hasRole("TEACHER")
 
                         .anyRequest().permitAll()
                 )

@@ -122,4 +122,12 @@ public class TaskSolutionController {
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return taskSolutionService.getSelectedSolution(taskId, teamId, authHeader);
     }
+
+    @GetMapping("/{taskId}/selected-solutions")
+    @Operation(summary = "Получить выбранные решения для всех команд задания (TEACHER)")
+    public List<TaskSolutionDto> getAllSelectedSolutions(
+            @PathVariable UUID taskId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return taskSolutionService.getAllSelectedSolutions(taskId, authHeader);
+    }
 }

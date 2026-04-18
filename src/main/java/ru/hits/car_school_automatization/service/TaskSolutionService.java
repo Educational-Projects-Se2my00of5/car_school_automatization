@@ -460,6 +460,33 @@ public class TaskSolutionService {
         return selected != null ? toDto(selected) : null;
     }
 
+    public List<TaskSolutionDto> getAllSelectedSolutions(UUID taskId, String authHeader) {
+        Long requesterId = tokenProvider.extractUserIdFromHeader(authHeader);
+        User requester = getUserById(requesterId);
+
+        Task task = getTaskById(taskId);
+        validateUserInTaskChannel(requesterId, task);
+
+        if (!isTeacherOrManager(requester)) {
+            throw new ForbiddenException("Только преподаватель может просматривать выбранные решения всех команд");
+        }
+
+        Set<Team> teams = task.getTeams();
+
+        List<TaskSolutionDto> result = new ArrayList<>();
+
+        for (Team team : teams) {
+            TaskSolution selected = taskSolutionRepository.findByTaskIdAndTeamIdAndIsSelectedTrue(taskId, team.getId())
+                    .orElse(null);
+
+            if (selected != null) {
+                result.add(toDto(selected));
+            }
+        }
+
+        return result;
+    }
+
     private void replaceDocuments(TaskSolution solution, List<MultipartFile> files) {
         deleteSolutionDocuments(solution);
         solution.setDocuments(storeDocumentsFromFiles(files));
