@@ -105,12 +105,13 @@ public class TaskSolutionController {
         taskSolutionService.cancelVote(taskId, authHeader);
     }
 
-    @GetMapping("/{taskId}/voting-results")
-    @Operation(summary = "Получить результаты голосования")
+    @GetMapping("/{taskId}/team/{teamId}/voting-results")
+    @Operation(summary = "Получить результаты голосования для команды")
     public VotingResultsDto getVotingResults(
             @PathVariable UUID taskId,
+            @PathVariable UUID teamId,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
-        return taskSolutionService.getVotingResults(taskId, authHeader);
+        return taskSolutionService.getVotingResults(taskId, teamId, authHeader);
     }
 
     @PostMapping("/{taskId}/team/{teamId}/select-accepted")

@@ -176,22 +176,38 @@ public class TaskSolutionService {
         return toVoteDto(saved);
     }
 
-    public VotingResultsDto getVotingResults(UUID taskId, String authHeader) {
+    public VotingResultsDto getVotingResults(UUID taskId, UUID teamId, String authHeader) {
         Long requesterId = tokenProvider.extractUserIdFromHeader(authHeader);
         User requester = getUserById(requesterId);
 
         Task task = getTaskById(taskId);
         validateUserInTaskChannel(requesterId, task);
 
-        Team team = teamRepository.findByTask_IdAndUsers_Id(taskId, requesterId).orElse(null);
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new NotFoundException("Команда не найдена"));
+
+        boolean inTeam = team.getUsers().stream().anyMatch(u -> u.getId().equals(requesterId));
         boolean isTeacher = isTeacherOrManager(requester);
 
-        if (!isTeacher && team == null) {
+        if (!inTeam && !isTeacher) {
             throw new ForbiddenException("У вас нет прав на просмотр результатов голосования");
         }
 
-        List<Object[]> voteResults = solutionVoteRepository.countVotesBySolution(taskId);
-        List<TaskSolution> solutions = taskSolutionRepository.findByTaskId(taskId);
+        List<TaskSolution> solutions = taskSolutionRepository.findByTaskIdAndTeamId(taskId, teamId);
+
+        List<UUID> solutionIds = solutions.stream().map(TaskSolution::getId).toList();
+
+        if (solutionIds.isEmpty()) {
+            return VotingResultsDto.builder()
+                    .taskId(task.getId())
+                    .taskLabel(task.getLabel())
+                    .isAnonymous(task.getIsAnonymousVoting())
+                    .totalVotes(0)
+                    .results(List.of())
+                    .build();
+        }
+
+        List<Object[]> voteResults = solutionVoteRepository.countVotesBySolutionIds(solutionIds);
 
         int totalVotes = voteResults.stream().mapToInt(r -> ((Long) r[1]).intValue()).sum();
 
@@ -211,7 +227,7 @@ public class TaskSolutionService {
             double percentage = totalVotes > 0 ? (votesCount * 100.0 / totalVotes) : 0;
 
             List<VoteResultDto.VoterInfoDto> voters = null;
-            if (!task.getIsAnonymousVoting() && (isTeacher || team != null)) {
+            if (!task.getIsAnonymousVoting() && (isTeacher || inTeam)) {
                 List<SolutionVote> votes = solutionVoteRepository.findBySolutionId(solutionId);
                 voters = votes.stream().map(vote -> {
                     User voter = userRepository.findById(vote.getVoterId()).orElse(null);
