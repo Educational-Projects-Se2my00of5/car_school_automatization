@@ -289,44 +289,47 @@ public class TaskSolutionService {
         log.info("Студент {} отменил свой голос в задании {}", voterId, taskId);
     }
 
-    public TaskSolutionDto selectAcceptedSolution(UUID taskId, UUID teamId, String authHeader) {
-        Long requesterId = tokenProvider.extractUserIdFromHeader(authHeader);
-
+    @Transactional
+    public void autoSelectSolutionForTeam(UUID taskId, UUID teamId) {
         Task task = getTaskById(taskId);
-        validateUserInTaskChannel(requesterId, task);
+
+        if (task.getVotingDeadline() == null || Instant.now().isBefore(task.getVotingDeadline())) {
+            return;
+        }
+
+        if (taskSolutionRepository.findByTaskIdAndTeamIdAndIsSelectedTrue(taskId, teamId).isPresent()) {
+            return;
+        }
+
+        List<TaskSolution> solutions = taskSolutionRepository.findByTaskIdAndTeamId(taskId, teamId);
+        if (solutions.isEmpty()) {
+            log.warn("Нет решений для задания {} и команды {}", taskId, teamId);
+            return;
+        }
 
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new NotFoundException("Команда не найдена"));
 
-        boolean inTeam = team.getUsers().stream().anyMatch(u -> u.getId().equals(requesterId));
-        if (!inTeam) {
-            throw new ForbiddenException("Вы не состоите в этой команде");
+        TaskSolution selectedSolution;
+
+        switch (task.getType()) {
+            case FIRST -> selectedSolution = selectFirstSolution(solutions);
+            case LAST -> selectedSolution = selectLastSolution(solutions);
+            case CAPITAN -> selectedSolution = selectCapitanSolution(solutions, team);
+            case DEMOCRATIC -> selectedSolution = selectDemocraticSolution(taskId, solutions, team);
+            case QUALIFIED -> selectedSolution = selectQualifiedSolution(taskId, solutions, team, task);
+            default -> {
+                log.warn("Для типа {} автоматический выбор не предусмотрен", task.getType());
+                return;
+            }
         }
-
-        if (task.getVotingDeadline() != null && Instant.now().isAfter(task.getVotingDeadline())) {
-            throw new BadRequestException("Дедлайн задания прошёл");
-        }
-
-        List<TaskSolution> solutions = taskSolutionRepository.findByTaskIdAndTeamId(taskId, teamId);
-
-        if (solutions.isEmpty()) {
-            throw new BadRequestException("Нет решений для выбора");
-        }
-
-        TaskSolution selectedSolution = switch (task.getType()) {
-            case FIRST -> selectFirstSolution(solutions);
-            case LAST -> selectLastSolution(solutions);
-            case CAPITAN -> selectCapitanSolution(solutions, team);
-            case DEMOCRATIC -> selectDemocraticSolution(taskId, solutions, team);
-            case QUALIFIED -> selectQualifiedSolution(taskId, solutions, team, task);
-            default -> throw new BadRequestException("Для этого типа задания автоматический выбор не предусмотрен");
-        };
 
         taskSolutionRepository.unselectAllByTaskIdAndTeamId(taskId, teamId);
         selectedSolution.setIsSelected(true);
-        TaskSolution saved = taskSolutionRepository.save(selectedSolution);
+        taskSolutionRepository.save(selectedSolution);
 
-        return toDto(saved);
+        log.info("Автоматически выбрано решение {} для задания {} и команды {}",
+                selectedSolution.getId(), taskId, teamId);
     }
 
     private TaskSolution selectFirstSolution(List<TaskSolution> solutions) {
