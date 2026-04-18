@@ -25,6 +25,9 @@ public interface SolutionVoteRepository extends JpaRepository<SolutionVote, UUID
 
     boolean existsByTaskIdAndVoterId(UUID taskId, Long voterId);
 
+    @Query("SELECT sv.solutionId, COUNT(sv) FROM SolutionVote sv WHERE sv.solutionId IN :solutionIds GROUP BY sv.solutionId")
+    List<Object[]> countVotesBySolutionIds(@Param("solutionIds") List<UUID> solutionIds);
+
     @Modifying
     void deleteByTaskId(UUID taskId);
 
