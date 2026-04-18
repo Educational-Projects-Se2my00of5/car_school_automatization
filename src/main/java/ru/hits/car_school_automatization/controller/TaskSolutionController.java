@@ -113,20 +113,22 @@ public class TaskSolutionController {
         return taskSolutionService.getVotingResults(taskId, authHeader);
     }
 
-    @PostMapping("/{taskId}/select-accepted")
+    @PostMapping("/{taskId}/team/{teamId}/select-accepted")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Автоматический выбор принятого решения (по типу задания)")
+    @Operation(summary = "Выбрать принятое решение для команды")
     public TaskSolutionDto selectAcceptedSolution(
             @PathVariable UUID taskId,
+            @PathVariable UUID teamId,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
-        return taskSolutionService.selectAcceptedSolution(taskId, authHeader);
+        return taskSolutionService.selectAcceptedSolution(taskId, teamId, authHeader);
     }
 
-    @GetMapping("/{taskId}/selected-solution")
-    @Operation(summary = "Получить выбранное решение для задания")
+    @GetMapping("/{taskId}/team/{teamId}/selected-solution")
+    @Operation(summary = "Получить выбранное решение для команды")
     public TaskSolutionDto getSelectedSolution(
             @PathVariable UUID taskId,
+            @PathVariable UUID teamId,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
-        return taskSolutionService.getSelectedSolution(taskId, authHeader);
+        return taskSolutionService.getSelectedSolution(taskId, teamId, authHeader);
     }
 }

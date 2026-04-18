@@ -33,6 +33,9 @@ public class TaskSolution {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "team_id", nullable = false)
+    private UUID teamId;
+
     @Column(name = "task_id", nullable = false)
     private UUID taskId;
 

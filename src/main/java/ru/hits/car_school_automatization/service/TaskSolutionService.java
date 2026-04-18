@@ -42,6 +42,9 @@ public class TaskSolutionService {
             throw new ForbiddenException("Только студент может отправить решение");
         }
 
+        Team team = teamRepository.findByTask_IdAndUsers_Id(taskId, userId)
+                .orElseThrow(() -> new ForbiddenException("Вы не состоите в команде этого задания"));
+
         if (taskSolutionRepository.existsByTaskIdAndStudentId(task.getId(), userId)) {
             throw new BadRequestException("Вы уже отправили решение на это задание");
         }
@@ -53,6 +56,7 @@ public class TaskSolutionService {
 
         TaskSolution solution = TaskSolution.builder()
                 .taskId(task.getId())
+                .teamId(team.getId())
                 .studentId(userId)
                 .documents(documents)
                 .build();
@@ -269,25 +273,25 @@ public class TaskSolutionService {
         log.info("Студент {} отменил свой голос в задании {}", voterId, taskId);
     }
 
-    public TaskSolutionDto selectAcceptedSolution(UUID taskId, String authHeader) {
+    public TaskSolutionDto selectAcceptedSolution(UUID taskId, UUID teamId, String authHeader) {
         Long requesterId = tokenProvider.extractUserIdFromHeader(authHeader);
-        User requester = getUserById(requesterId);
 
         Task task = getTaskById(taskId);
         validateUserInTaskChannel(requesterId, task);
 
-        if (isTeacherOrManager(requester)) {
-            throw new BadRequestException("Решение выбирают студенты");
-        }
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new NotFoundException("Команда не найдена"));
 
-        Team team = teamRepository.findByTask_IdAndUsers_Id(taskId, requesterId)
-                .orElseThrow(() -> new ForbiddenException("Вы не состоите в команде этого задания"));
+        boolean inTeam = team.getUsers().stream().anyMatch(u -> u.getId().equals(requesterId));
+        if (!inTeam) {
+            throw new ForbiddenException("Вы не состоите в этой команде");
+        }
 
         if (task.getVotingDeadline() != null && Instant.now().isAfter(task.getVotingDeadline())) {
             throw new BadRequestException("Дедлайн задания прошёл");
         }
 
-        List<TaskSolution> solutions = taskSolutionRepository.findByTaskId(taskId);
+        List<TaskSolution> solutions = taskSolutionRepository.findByTaskIdAndTeamId(taskId, teamId);
 
         if (solutions.isEmpty()) {
             throw new BadRequestException("Нет решений для выбора");
@@ -302,13 +306,9 @@ public class TaskSolutionService {
             default -> throw new BadRequestException("Для этого типа задания автоматический выбор не предусмотрен");
         };
 
-        taskSolutionRepository.unselectAllByTaskId(taskId);
-
+        taskSolutionRepository.unselectAllByTaskIdAndTeamId(taskId, teamId);
         selectedSolution.setIsSelected(true);
         TaskSolution saved = taskSolutionRepository.save(selectedSolution);
-
-        log.info("Автоматически выбрано решение {} для задания {} (тип: {})",
-                saved.getId(), taskId, task.getType());
 
         return toDto(saved);
     }
@@ -419,20 +419,26 @@ public class TaskSolutionService {
                 .build();
     }
 
-    public TaskSolutionDto getSelectedSolution(UUID taskId, String authHeader) {
+    public TaskSolutionDto getSelectedSolution(UUID taskId, UUID teamId, String authHeader) {
         Long requesterId = tokenProvider.extractUserIdFromHeader(authHeader);
 
         Task task = getTaskById(taskId);
         validateUserInTaskChannel(requesterId, task);
 
-        TaskSolution selected = taskSolutionRepository.findByTaskIdAndIsSelectedTrue(taskId)
-                .orElse(null);
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new NotFoundException("Команда не найдена"));
 
-        if (selected == null) {
-            return null;
+        boolean inTeam = team.getUsers().stream().anyMatch(u -> u.getId().equals(requesterId));
+        boolean isTeacher = isTeacherOrManager(getUserById(requesterId));
+
+        if (!inTeam && !isTeacher) {
+            throw new ForbiddenException("У вас нет доступа к этой команде");
         }
 
-        return toDto(selected);
+        TaskSolution selected = taskSolutionRepository.findByTaskIdAndTeamIdAndIsSelectedTrue(taskId, teamId)
+                .orElse(null);
+
+        return selected != null ? toDto(selected) : null;
     }
 
     private void replaceDocuments(TaskSolution solution, List<MultipartFile> files) {
