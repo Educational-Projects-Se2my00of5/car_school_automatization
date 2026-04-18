@@ -17,6 +17,14 @@ public interface TaskSolutionRepository extends JpaRepository<TaskSolution, UUID
 
     boolean existsByTaskIdAndStudentId(UUID taskId, Long studentId);
 
+    List<TaskSolution> findByTaskIdAndTeamId(UUID taskId, UUID teamId);
+
+    Optional<TaskSolution> findByTaskIdAndTeamIdAndIsSelectedTrue(UUID taskId, UUID teamId);
+
+    @Modifying
+    @Query("UPDATE TaskSolution ts SET ts.isSelected = false WHERE ts.taskId = :taskId AND ts.teamId = :teamId")
+    void unselectAllByTaskIdAndTeamId(@Param("taskId") UUID taskId, @Param("teamId") UUID teamId);
+
     List<TaskSolution> findByTaskIdOrderByCreatedAtDesc(UUID taskId);
 
     List<TaskSolution> findByStudentIdOrderByCreatedAtDesc(Long studentId);
