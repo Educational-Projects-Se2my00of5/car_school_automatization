@@ -99,8 +99,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/task-solutions/vote/**").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/voting-results").authenticated()
 
-                        .requestMatchers(HttpMethod.POST, "/api/task-solutions/*/select-accepted").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solution").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solutions").hasRole("TEACHER")
 
                         .requestMatchers(HttpMethod.POST, "/api/teams/*/mark").hasRole("TEACHER")
                         .requestMatchers(HttpMethod.GET, "/api/teams/*/mark").authenticated()
