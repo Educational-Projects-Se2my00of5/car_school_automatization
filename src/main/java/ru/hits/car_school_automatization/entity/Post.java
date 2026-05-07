@@ -34,6 +34,9 @@ public class Post {
 
     private LocalDateTime deadline;
 
+    @Embedded
+    private DeadlinePenalty deadlinePenalty;
+
     @Column(name = "channel_id", nullable = false)
     private UUID channelId;
 

@@ -6,4 +6,5 @@ public enum PostType {
     TASK,
     NEWS,
     TEAM_TASK,
+    CONTROL,
 }

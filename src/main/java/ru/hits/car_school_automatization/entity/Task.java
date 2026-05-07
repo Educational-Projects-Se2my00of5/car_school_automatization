@@ -59,6 +59,9 @@ public class Task {
     @Column(nullable = false)
     private Integer minTeamSize;
 
+    @Embedded
+    private DeadlinePenalty deadlinePenalty;
+
     private Instant votingDeadline;
 
     private Integer qualifiedMin;
