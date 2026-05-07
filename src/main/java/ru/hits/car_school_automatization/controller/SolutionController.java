@@ -32,20 +32,12 @@ public class SolutionController {
     }
 
     @PutMapping(value = "/{solutionId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Обновить своё решение (пока не оценено)")
+    @Operation(summary = "Обновить своё решение")
     public SolutionDto updateSolution(
             @PathVariable UUID solutionId,
             @Valid @ModelAttribute UpdateSolutionDto updateDto,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return solutionService.updateSolution(solutionId, updateDto, authHeader);
-    }
-
-    @PostMapping("/grade")
-    @Operation(summary = "Оценить решение (для преподавателя)")
-    public SolutionDto gradeSolution(
-            @Valid @RequestBody GradeSolutionDto gradeDto,
-            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
-        return solutionService.gradeSolution(gradeDto, authHeader);
     }
 
     @GetMapping("/{solutionId}")
@@ -72,14 +64,6 @@ public class SolutionController {
         return solutionService.getTaskSolutions(taskId, authHeader);
     }
 
-    @GetMapping("/task/{taskId}/ungraded")
-    @Operation(summary = "Получить неоценённые решения по заданию (для преподавателя)")
-    public List<SolutionDto> getUngradedSolutions(
-            @PathVariable UUID taskId,
-            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
-        return solutionService.getUngradedSolutions(taskId, authHeader);
-    }
-
     @GetMapping("/student/{studentId}/channel/{channelId}/tasks")
     @Operation(summary = "Получить задачи студента с решениями в канале")
     public List<TaskWithSolutionDto> getStudentTasksWithSolutions(
@@ -91,7 +75,7 @@ public class SolutionController {
 
     @DeleteMapping("/{solutionId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Удалить решение (студент может удалить только неоценённое, админ - любое)")
+    @Operation(summary = "Удалить решение (студент может удалить только своё, админ - любое)")
     public void deleteSolution(
             @PathVariable UUID solutionId,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {

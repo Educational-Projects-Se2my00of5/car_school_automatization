@@ -595,7 +595,6 @@ public class TaskSolutionService {
                                 .fileUrl(document.getFileUrl())
                                 .build())
                         .toList())
-                .mark(solution.getMark())
                 .createdAt(solution.getCreatedAt())
                 .updatedAt(solution.getUpdatedAt())
                 .build();

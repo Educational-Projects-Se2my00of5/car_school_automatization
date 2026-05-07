@@ -22,13 +22,6 @@ public interface SolutionRepository extends JpaRepository<Solution, UUID> {
     // Все решения по заданию
     List<Solution> findByTaskId(UUID taskId);
 
-    // Все решения, оценённые преподавателем
-    List<Solution> findByTeacherId(Long teacherId);
-
-    // Решения без оценки
-    @Query("SELECT s FROM Solution s WHERE s.taskId = :taskId AND s.mark IS NULL")
-    List<Solution> findUngradedByTaskId(@Param("taskId") UUID taskId);
-
     // Проверить, отправлял ли студент решение
     boolean existsByTaskIdAndStudentId(UUID taskId, Long studentId);
 

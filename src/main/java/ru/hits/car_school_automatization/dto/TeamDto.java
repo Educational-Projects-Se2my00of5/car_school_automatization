@@ -21,7 +21,6 @@ public class TeamDto {
     private Long captainId;
     private Boolean isAvailableRevote;
     private Boolean isCaptainVotingActive;
-    private Float mark;
     private Instant deadline;
     private Instant softDeadline;
     private Set<UserShortDto> users;

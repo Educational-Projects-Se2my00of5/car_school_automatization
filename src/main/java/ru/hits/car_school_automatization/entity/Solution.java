@@ -41,8 +41,6 @@ public class Solution {
     @Column(name = "file_name")
     private String fileName;
 
-    private Integer mark;
-
     @CreationTimestamp
     @Column(name = "submitted_at", nullable = false, updatable = false)
     private LocalDateTime submittedAt;
@@ -50,7 +48,4 @@ public class Solution {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @Column(name = "marked_at")
-    private LocalDateTime markedAt;
 }

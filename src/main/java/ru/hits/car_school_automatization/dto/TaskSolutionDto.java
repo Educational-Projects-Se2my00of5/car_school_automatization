@@ -18,7 +18,6 @@ public class TaskSolutionDto {
     private UUID taskId;
     private Long studentId;
     private List<TaskDocumentDto> documents;
-    private Integer mark;
     private Instant createdAt;
     private Instant updatedAt;
 }

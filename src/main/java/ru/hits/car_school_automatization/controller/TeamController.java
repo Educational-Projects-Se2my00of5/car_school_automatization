@@ -180,21 +180,4 @@ public class TeamController {
         return teamService.getMyInvites(authHeader);
     }
 
-    @PostMapping("/{teamId}/mark")
-    @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Выставить командную оценку (TEACHER)")
-    public TeamDto setTeamMark(
-            @PathVariable UUID teamId,
-            @RequestParam Float mark,
-            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
-        return teamService.setTeamMark(teamId, mark, authHeader);
-    }
-
-    @GetMapping("/{teamId}/mark")
-    @Operation(summary = "Получить командную оценку")
-    public Float getTeamMark(
-            @PathVariable UUID teamId,
-            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
-        return teamService.getTeamMark(teamId, authHeader);
-    }
 }

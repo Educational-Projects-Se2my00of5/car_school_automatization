@@ -50,9 +50,6 @@ public class TaskSolution {
     @Builder.Default
     private List<TaskDocument> documents = new ArrayList<>();
 
-    @Column(name = "mark")
-    private Integer mark;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

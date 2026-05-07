@@ -25,8 +25,6 @@ public class SolutionDto {
     private String text;
     private String fileUrl;
     private String fileName;
-    private Integer mark;
     private LocalDateTime submittedAt;
     private LocalDateTime updatedAt;
-    private LocalDateTime markedAt;
 }

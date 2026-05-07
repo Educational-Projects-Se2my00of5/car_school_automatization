@@ -102,8 +102,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solution").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solutions").hasRole("TEACHER")
 
-                        .requestMatchers(HttpMethod.POST, "/api/teams/*/mark").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.GET, "/api/teams/*/mark").authenticated()
 
                         .anyRequest().permitAll()
                 )

@@ -53,8 +53,6 @@ public class Team {
     @Builder.Default
     private Boolean isCaptainVotingActive = false;
 
-    private Float mark;
-
     private Instant deadline;
 
     private Instant softDeadline;

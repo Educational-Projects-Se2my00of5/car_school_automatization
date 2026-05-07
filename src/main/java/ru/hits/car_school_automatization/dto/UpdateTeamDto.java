@@ -18,7 +18,6 @@ public class UpdateTeamDto {
     private Long captainId;
     private Boolean isAvailableRevote;
     private Boolean isCaptainVotingActive;
-    private Float mark;
     private Instant deadline;
     private Instant softDeadline;
 }

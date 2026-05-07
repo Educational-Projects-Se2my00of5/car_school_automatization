@@ -347,10 +347,8 @@ public class PostService {
                 .text(solution.getText())
                 .fileUrl(solution.getFileUrl())
                 .fileName(solution.getFileName())
-                .mark(solution.getMark())
                 .submittedAt(solution.getSubmittedAt())
                 .updatedAt(solution.getUpdatedAt())
-                .markedAt(solution.getMarkedAt())
                 .build();
     }
 
