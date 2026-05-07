@@ -80,7 +80,7 @@ public class SolutionService {
         log.info("Студент {} отправил решение на задание {}", studentId, submitDto.getTaskId());
 
         return mapToDto(savedSolution, task.getLabel(),
-                student.getFirstName() + " " + student.getLastName(), null);
+            student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -126,7 +126,7 @@ public class SolutionService {
         log.info("Студент {} обновил решение {}", studentId, solutionId);
 
         return mapToDto(updatedSolution, task.getLabel(),
-                student.getFirstName() + " " + student.getLastName(), null);
+            student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -147,11 +147,8 @@ public class SolutionService {
         Post task = postRepository.findById(solution.getTaskId())
                 .orElseThrow(() -> new NotFoundException("Задание не найдено"));
         User student = getUserById(solution.getStudentId());
-        User teacher = solution.getTeacherId() != null ? getUserById(solution.getTeacherId()) : null;
-
         return mapToDto(solution, task.getLabel(),
-                student.getFirstName() + " " + student.getLastName(),
-                teacher != null ? teacher.getFirstName() + " " + teacher.getLastName() : null);
+            student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -170,12 +167,9 @@ public class SolutionService {
         return solutionRepository.findStudentSolutions(studentId).stream()
                 .map(solution -> {
                     Post task = postRepository.findById(solution.getTaskId()).orElse(null);
-                    User teacher = solution.getTeacherId() != null ? getUserById(solution.getTeacherId()) : null;
-
-                    return mapToDto(solution,
+                        return mapToDto(solution,
                             task != null ? task.getLabel() : null,
-                            student.getFirstName() + " " + student.getLastName(),
-                            teacher != null ? teacher.getFirstName() + " " + teacher.getLastName() : null);
+                            student.getFirstName() + " " + student.getLastName(), authHeader);
                 })
                 .collect(Collectors.toList());
     }
@@ -197,15 +191,13 @@ public class SolutionService {
         return solutionRepository.findTaskSolutions(taskId).stream()
                 .map(solution -> {
                     User student = getUserById(solution.getStudentId());
-                    User teacher = solution.getTeacherId() != null ? getUserById(solution.getTeacherId()) : null;
 
                     return mapToDto(solution,
-                            task.getLabel(),
-                            student.getFirstName() + " " + student.getLastName(),
-                            teacher != null ? teacher.getFirstName() + " " + teacher.getLastName() : null);
+                        task.getLabel(),
+                        student.getFirstName() + " " + student.getLastName(), authHeader);
                 })
                 .collect(Collectors.toList());
-        }
+    }
 
 
     /**
@@ -229,10 +221,8 @@ public class SolutionService {
 
                     SolutionDto solutionDto = null;
                     if (solution != null) {
-                        User teacher = solution.getTeacherId() != null ? getUserById(solution.getTeacherId()) : null;
                         solutionDto = mapToDto(solution, task.getLabel(),
-                                student.getFirstName() + " " + student.getLastName(),
-                                teacher != null ? teacher.getFirstName() + " " + teacher.getLastName() : null);
+                            student.getFirstName() + " " + student.getLastName(), authHeader);
                     }
 
                     return TaskWithSolutionDto.builder()
@@ -297,20 +287,25 @@ public class SolutionService {
         return fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
     }
 
-    private SolutionDto mapToDto(Solution solution, String taskLabel, String studentName, String teacherName) {
+    private SolutionDto mapToDto(Solution solution, String taskLabel, String studentName, String authHeader) {
         return SolutionDto.builder()
                 .id(solution.getId())
                 .studentId(solution.getStudentId())
                 .studentName(studentName)
                 .taskId(solution.getTaskId())
                 .taskLabel(taskLabel)
-                .teacherId(solution.getTeacherId())
-                .teacherName(teacherName)
+                .teacherId(teacherInfo.teacherId())
+                .teacherName(teacherInfo.teacherName())
                 .text(solution.getText())
                 .fileUrl(solution.getFileUrl())
                 .fileName(solution.getFileName())
+                .mark(mark)
                 .submittedAt(solution.getSubmittedAt())
                 .updatedAt(solution.getUpdatedAt())
+                .markedAt(markedAt)
                 .build();
+    }
+
+    private record TeacherInfo(Long teacherId, String teacherName, java.time.Instant lastEditedAt) {
     }
 }

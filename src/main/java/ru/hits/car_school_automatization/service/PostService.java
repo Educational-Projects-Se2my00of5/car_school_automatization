@@ -325,15 +325,9 @@ public class PostService {
                 .build();
     }
 
-    private SolutionDto mapToSolutionDto(Solution solution) {
+    private SolutionDto mapToSolutionDto(Solution solution, String authHeader) {
         User student = userRepository.findById(solution.getStudentId())
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + solution.getStudentId() + " не найден"));
-        User teacher = null;
-        if (solution.getTeacherId() != null) {
-            teacher = userRepository.findById(solution.getStudentId())
-                    .orElseThrow(() -> new NotFoundException("Пользователь с id " + solution.getTeacherId() + " не найден"));
-        }
-
         Post task = postRepository.findById(solution.getTaskId()).orElse(null);
 
         return SolutionDto.builder()
@@ -342,14 +336,19 @@ public class PostService {
                 .studentName(student.getFirstName() + " " + student.getLastName())
                 .taskId(solution.getTaskId())
                 .taskLabel(task != null ? task.getLabel() : null)
-                .teacherId(solution.getTeacherId())
-                .teacherName(teacher != null ? teacher.getFirstName() + " " + teacher.getLastName() : null)
+                .teacherId(teacherInfo.teacherId())
+                .teacherName(teacherInfo.teacherName())
                 .text(solution.getText())
                 .fileUrl(solution.getFileUrl())
                 .fileName(solution.getFileName())
+                .mark(mark)
                 .submittedAt(solution.getSubmittedAt())
                 .updatedAt(solution.getUpdatedAt())
+                .markedAt(markedAt)
                 .build();
+    }
+
+    private record TeacherInfo(Long teacherId, String teacherName, Instant lastEditedAt) {
     }
 
     private String getAuthorFullName(Long id) {

@@ -29,9 +29,6 @@ public class Solution {
     @Column(name = "task_id", nullable = false)
     private UUID taskId;
 
-    @Column(name = "teacher_id")
-    private Long teacherId;
-
     @Column(columnDefinition = "TEXT")
     private String text;
 
