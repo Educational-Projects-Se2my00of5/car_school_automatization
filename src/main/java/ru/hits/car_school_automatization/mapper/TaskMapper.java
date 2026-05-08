@@ -5,8 +5,10 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
+import ru.hits.car_school_automatization.dto.DeadlinePenaltyDto;
 import ru.hits.car_school_automatization.dto.TaskDto;
 import ru.hits.car_school_automatization.dto.UpdateTaskDto;
+import ru.hits.car_school_automatization.entity.DeadlinePenalty;
 import ru.hits.car_school_automatization.entity.Task;
 
 import java.util.List;
@@ -16,6 +18,7 @@ public interface TaskMapper {
 
     @Mapping(target = "channelId", source = "channel.id")
     @Mapping(target = "teams", source = "teams", qualifiedByName = "toSortedDtoListFromSet")
+    @Mapping(target = "deadlinePenalty", source = "deadlinePenalty")
     TaskDto toDto(Task task);
 
     List<TaskDto> toDtoList(List<Task> tasks);
@@ -26,5 +29,17 @@ public interface TaskMapper {
     @Mapping(target = "teams", ignore = true)
     @Mapping(target = "startAt", ignore = true)
     @Mapping(target = "documents", ignore = true)
+    @Mapping(target = "deadlinePenalty", ignore = true)
     void updateTaskFromDto(UpdateTaskDto dto, @MappingTarget Task task);
+
+    default DeadlinePenaltyDto map(DeadlinePenalty penalty) {
+        if (penalty == null) {
+            return null;
+        }
+        return DeadlinePenaltyDto.builder()
+                .unit(penalty.getUnit())
+                .step(penalty.getStep())
+                .value(penalty.getValue())
+                .build();
+    }
 }

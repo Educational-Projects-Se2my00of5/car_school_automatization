@@ -43,6 +43,8 @@ public class CreateTaskDto {
     @NotNull
     private Integer minTeamSize;
 
+    private DeadlinePenaltyDto deadlinePenalty;
+
     private Instant votingDeadline;
 
     private Integer qualifiedMin;

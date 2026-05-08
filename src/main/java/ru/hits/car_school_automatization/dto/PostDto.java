@@ -1,7 +1,6 @@
 package ru.hits.car_school_automatization.dto;
 
 import jakarta.annotation.Nullable;
-import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,7 +8,6 @@ import lombok.NoArgsConstructor;
 import ru.hits.car_school_automatization.enums.PostType;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -25,9 +23,14 @@ public class PostDto {
     @Nullable
     private LocalDateTime deadline;
 
+    private DeadlinePenaltyDto deadlinePenalty;
+
     private String authorName;
     private String fileUrl;
     private String fileName;
+
+    @Nullable
+    private ControlDto control;
 
     @Nullable
     private SolutionDto studentSolution;

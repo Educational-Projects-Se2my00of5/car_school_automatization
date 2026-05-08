@@ -40,7 +40,7 @@ public class DataInitializer implements CommandLineRunner {
                     .phone("+79999999999")
                     .email(managerEmail)
                     .passwordHash(passwordEncoder.encode("manager123"))
-                    .role(List.of(Role.MANAGER))
+                    .role(List.of(Role.MANAGER, Role.TEACHER))
                     .isActive(true)
                     .build();
 

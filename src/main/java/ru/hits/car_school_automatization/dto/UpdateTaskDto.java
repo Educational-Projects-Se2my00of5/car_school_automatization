@@ -24,6 +24,7 @@ public class UpdateTaskDto {
     private Boolean isCanRedistribute;
     private Integer qualifiedMin;
     private Integer minTeamSize;
+    private DeadlinePenaltyDto deadlinePenalty;
     private Instant votingDeadline;
     private Boolean isAnonymousVoting;
 }

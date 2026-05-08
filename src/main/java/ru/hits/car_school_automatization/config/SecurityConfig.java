@@ -102,6 +102,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solution").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solutions").hasRole("TEACHER")
 
+                        .requestMatchers(HttpMethod.POST, "/api/metrics").hasRole("TEACHER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/metrics/**").hasRole("TEACHER")
+                        .requestMatchers(HttpMethod.PUT, "/api/metrics/values/**").hasRole("TEACHER")
+                        .requestMatchers(HttpMethod.GET, "/api/metrics/**").authenticated()
+
+                        .requestMatchers(HttpMethod.GET, "/api/controls/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/controls/**").hasRole("TEACHER")
+
+                        .requestMatchers(HttpMethod.GET, "/api/grades/**").authenticated()
 
                         .anyRequest().permitAll()
                 )

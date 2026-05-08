@@ -11,6 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.enums.PostType;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -30,10 +32,16 @@ public class CreatePostDto {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime deadline;
 
+    private DeadlinePenaltyDto deadlinePenalty;
+
     private Boolean needMark;
 
     @NotNull
     private String channelId;
+
+    private List<UUID> controlPostTaskIds;
+
+    private List<UUID> controlTaskIds;
 
     private MultipartFile file;
 }
