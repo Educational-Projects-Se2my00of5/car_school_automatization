@@ -6,6 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.*;
+import ru.hits.car_school_automatization.entity.Metric;
+import ru.hits.car_school_automatization.entity.MetricChange;
+import ru.hits.car_school_automatization.entity.MetricValue;
 import ru.hits.car_school_automatization.entity.Post;
 import ru.hits.car_school_automatization.entity.Solution;
 import ru.hits.car_school_automatization.entity.User;
@@ -14,11 +17,15 @@ import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
+import ru.hits.car_school_automatization.repository.MetricChangeRepository;
+import ru.hits.car_school_automatization.repository.MetricRepository;
+import ru.hits.car_school_automatization.repository.MetricValueRepository;
 import ru.hits.car_school_automatization.repository.PostRepository;
 import ru.hits.car_school_automatization.repository.SolutionRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,6 +39,10 @@ public class SolutionService {
     private final SolutionRepository solutionRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final GradeService gradeService;
+    private final MetricRepository metricRepository;
+    private final MetricValueRepository metricValueRepository;
+    private final MetricChangeRepository metricChangeRepository;
     private final JwtTokenProvider tokenProvider;
     private final FileStorageService fileStorageService;
 
@@ -288,6 +299,12 @@ public class SolutionService {
     }
 
     private SolutionDto mapToDto(Solution solution, String taskLabel, String studentName, String authHeader) {
+        Double mark = gradeService.getPostGrade(solution.getTaskId(), solution.getStudentId(), authHeader);
+        TeacherInfo teacherInfo = resolveTeacherInfo(solution.getTaskId(), solution.getStudentId());
+        LocalDateTime markedAt = teacherInfo.lastEditedAt() != null
+                ? LocalDateTime.ofInstant(teacherInfo.lastEditedAt(), ZoneOffset.UTC)
+                : null;
+
         return SolutionDto.builder()
                 .id(solution.getId())
                 .studentId(solution.getStudentId())
@@ -304,6 +321,37 @@ public class SolutionService {
                 .updatedAt(solution.getUpdatedAt())
                 .markedAt(markedAt)
                 .build();
+    }
+
+    private TeacherInfo resolveTeacherInfo(UUID postId, Long studentId) {
+        List<Metric> metrics = metricRepository.findByPostId(postId);
+        if (metrics.isEmpty()) {
+            return new TeacherInfo(null, null, null);
+        }
+
+        List<UUID> metricIds = metrics.stream().map(Metric::getId).toList();
+        List<MetricValue> values = metricValueRepository.findByMetricIdInAndUserId(metricIds, studentId);
+
+        MetricChange latest = null;
+        for (MetricValue value : values) {
+            MetricChange change = metricChangeRepository.findFirstByMetricValueIdOrderByEditedAtDesc(value.getId())
+                    .orElse(null);
+            if (change == null) {
+                continue;
+            }
+            if (latest == null || change.getEditedAt().isAfter(latest.getEditedAt())) {
+                latest = change;
+            }
+        }
+
+        if (latest == null) {
+            return new TeacherInfo(null, null, null);
+        }
+
+        User teacher = userRepository.findById(latest.getEditorId()).orElse(null);
+        String teacherName = teacher != null ? teacher.getFirstName() + " " + teacher.getLastName() : null;
+
+        return new TeacherInfo(latest.getEditorId(), teacherName, latest.getEditedAt());
     }
 
     private record TeacherInfo(Long teacherId, String teacherName, java.time.Instant lastEditedAt) {

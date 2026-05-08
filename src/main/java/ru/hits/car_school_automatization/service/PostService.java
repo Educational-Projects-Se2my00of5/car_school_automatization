@@ -6,10 +6,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.CreatePostDto;
+import ru.hits.car_school_automatization.dto.ControlDto;
+import ru.hits.car_school_automatization.dto.DeadlinePenaltyDto;
 import ru.hits.car_school_automatization.dto.PostDto;
 import ru.hits.car_school_automatization.dto.ShortPostDto;
 import ru.hits.car_school_automatization.dto.SolutionDto;
 import ru.hits.car_school_automatization.entity.Channel;
+import ru.hits.car_school_automatization.entity.DeadlinePenalty;
+import ru.hits.car_school_automatization.entity.Metric;
+import ru.hits.car_school_automatization.entity.MetricChange;
+import ru.hits.car_school_automatization.entity.MetricValue;
 import ru.hits.car_school_automatization.entity.Post;
 import ru.hits.car_school_automatization.entity.Solution;
 import ru.hits.car_school_automatization.entity.Task;
@@ -20,13 +26,17 @@ import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.repository.*;
+import ru.hits.car_school_automatization.util.DeadlinePenaltyUtils;
+import ru.hits.car_school_automatization.util.RoleUtils;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -41,6 +51,11 @@ public class PostService {
     private final PostRepository postRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final ControlService controlService;
+    private final GradeService gradeService;
+    private final MetricRepository metricRepository;
+    private final MetricValueRepository metricValueRepository;
+    private final MetricChangeRepository metricChangeRepository;
     private final FileStorageService fileStorageService;
     private final SolutionRepository solutionRepository;
     private final JwtTokenProvider tokenProvider;
@@ -56,7 +71,7 @@ public class PostService {
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + authorId + " не найден"));
 
-        if (!isTeacherOrManager(author)) {
+        if (!RoleUtils.isTeacherOrManager(author)) {
             throw new ForbiddenException("Только преподаватели и менеджеры могут создавать посты");
         }
 
@@ -75,11 +90,20 @@ public class PostService {
                 .text(createPostDto.getText())
                 .type(createPostDto.getType())
                 .deadline(createPostDto.getDeadline())
+            .deadlinePenalty(DeadlinePenaltyUtils.build(createPostDto.getDeadlinePenalty()))
                 .authorId(authorId)
                 .channelId(channelUuid)
                 .needMark(createPostDto.getNeedMark())
                 .createdAt(LocalDateTime.now())
                 .build();
+
+        if (!PostType.CONTROL.equals(post.getType())) {
+            boolean hasControlTargets = (createPostDto.getControlPostTaskIds() != null && !createPostDto.getControlPostTaskIds().isEmpty())
+                    || (createPostDto.getControlTaskIds() != null && !createPostDto.getControlTaskIds().isEmpty());
+            if (hasControlTargets) {
+                throw new BadRequestException("Списки контрольной доступны только для CONTROL");
+            }
+        }
 
         MultipartFile file = createPostDto.getFile();
         if (file != null && !file.isEmpty()) {
@@ -89,8 +113,14 @@ public class PostService {
             log.info("Файл {} добавлен к посту", file.getOriginalFilename());
         }
 
-        postRepository.save(post);
-        log.info("Пост успешно создан с id: {}", post.getId());
+        Post savedPost = postRepository.save(post);
+        if (PostType.CONTROL.equals(savedPost.getType())) {
+            controlService.createControl(savedPost,
+                    toUuidSet(createPostDto.getControlPostTaskIds()),
+                    toUuidSet(createPostDto.getControlTaskIds()));
+            log.info("Список заданий для контрольной с id = {} создан", savedPost.getId());
+        }
+        log.info("Пост успешно создан с id: {}", savedPost.getId());
     }
 
     /**
@@ -104,6 +134,9 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("Пост с id " + postId + " не найден"));
 
+        if (PostType.CONTROL.equals(post.getType())) {
+            controlService.deleteControlByPostId(post.getId());
+        }
         postRepository.delete(post);
         log.info("Пост с id {} успешно удален", postId);
     }
@@ -156,11 +189,16 @@ public class PostService {
         SolutionDto studentSolution = null;
         if (PostType.TASK.equals(post.getType()) && isStudent(user)) {
             studentSolution = solutionRepository.findByTaskIdAndStudentId(postId, userId)
-                    .map(this::mapToSolutionDto)
+                    .map(solution -> mapToSolutionDto(solution, authHeader))
                     .orElse(null);
         }
 
-        return mapToPostDto(post, getAuthorFullName(post.getAuthorId()), studentSolution);
+        ControlDto control = null;
+        if (PostType.CONTROL.equals(post.getType())) {
+            control = controlService.getControl(postId, authHeader);
+        }
+
+        return mapToPostDto(post, getAuthorFullName(post.getAuthorId()), studentSolution, control);
     }
 
     /**
@@ -197,7 +235,7 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("Пост с id " + postId + " не найден"));
 
-        if (!post.getAuthorId().equals(authorId) && !isTeacherOrManager(user)) {
+        if (!post.getAuthorId().equals(authorId) && !RoleUtils.isTeacherOrManager(user)) {
             throw new ForbiddenException("У вас нет прав на добавление файла к этому посту");
         }
 
@@ -273,10 +311,6 @@ public class PostService {
         return user.getRole().contains(Role.STUDENT);
     }
 
-    private boolean isTeacherOrManager(User user) {
-        return user.getRole().contains(Role.TEACHER) || user.getRole().contains(Role.MANAGER);
-    }
-
     /**
      * Маппинг Post в ShortPostDto
      */
@@ -311,16 +345,23 @@ public class PostService {
     /**
      * Маппинг Post в PostDto
      */
-    private PostDto mapToPostDto(Post post, String authorName, SolutionDto studentSolution) {
+    private PostDto mapToPostDto(Post post, String authorName, SolutionDto studentSolution, ControlDto control) {
+        DeadlinePenalty penalty = post.getDeadlinePenalty();
         return PostDto.builder()
                 .id(post.getId())
                 .label(post.getLabel())
                 .text(post.getText())
                 .type(post.getType())
                 .deadline(post.getDeadline())
+            .deadlinePenalty(penalty != null ? DeadlinePenaltyDto.builder()
+                    .unit(penalty.getUnit())
+                    .step(penalty.getStep())
+                    .value(penalty.getValue())
+                    .build() : null)
                 .authorName(authorName)
                 .fileUrl(post.getFileUrl())
                 .fileName(post.getFileName())
+                .control(control)
                 .studentSolution(studentSolution)
                 .build();
     }
@@ -329,6 +370,11 @@ public class PostService {
         User student = userRepository.findById(solution.getStudentId())
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + solution.getStudentId() + " не найден"));
         Post task = postRepository.findById(solution.getTaskId()).orElse(null);
+        Double mark = gradeService.getPostGrade(solution.getTaskId(), solution.getStudentId(), authHeader);
+        TeacherInfo teacherInfo = resolveTeacherInfo(solution.getTaskId(), solution.getStudentId());
+        LocalDateTime markedAt = teacherInfo.lastEditedAt() != null
+                ? LocalDateTime.ofInstant(teacherInfo.lastEditedAt(), ZoneOffset.UTC)
+                : null;
 
         return SolutionDto.builder()
                 .id(solution.getId())
@@ -348,6 +394,36 @@ public class PostService {
                 .build();
     }
 
+    private TeacherInfo resolveTeacherInfo(UUID postId, Long studentId) {
+        List<Metric> metrics = metricRepository.findByPostId(postId);
+        if (metrics.isEmpty()) {
+            return new TeacherInfo(null, null, null);
+        }
+
+        List<UUID> metricIds = metrics.stream().map(Metric::getId).toList();
+        List<MetricValue> values = metricValueRepository.findByMetricIdInAndUserId(metricIds, studentId);
+
+        MetricChange latest = null;
+        for (MetricValue value : values) {
+            MetricChange change = metricChangeRepository.findFirstByMetricValueIdOrderByEditedAtDesc(value.getId())
+                    .orElse(null);
+            if (change == null) {
+                continue;
+            }
+            if (latest == null || change.getEditedAt().isAfter(latest.getEditedAt())) {
+                latest = change;
+            }
+        }
+
+        if (latest == null) {
+            return new TeacherInfo(null, null, null);
+        }
+
+        User teacher = userRepository.findById(latest.getEditorId()).orElse(null);
+        String teacherName = teacher != null ? teacher.getFirstName() + " " + teacher.getLastName() : null;
+        return new TeacherInfo(latest.getEditorId(), teacherName, latest.getEditedAt());
+    }
+
     private record TeacherInfo(Long teacherId, String teacherName, Instant lastEditedAt) {
     }
 
@@ -362,6 +438,10 @@ public class PostService {
             return null;
         }
         return fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+    }
+
+    private Set<UUID> toUuidSet(List<UUID> ids) {
+        return ids == null ? null : new HashSet<>(ids);
     }
 
     private record FeedItem(ShortPostDto dto, Instant createdAt) {

@@ -9,10 +9,12 @@ import ru.hits.car_school_automatization.dto.TaskDto;
 import ru.hits.car_school_automatization.dto.UpdateTaskDto;
 import ru.hits.car_school_automatization.dto.UserShortDto;
 import ru.hits.car_school_automatization.entity.Channel;
+import ru.hits.car_school_automatization.entity.DeadlinePenalty;
 import ru.hits.car_school_automatization.entity.Task;
 import ru.hits.car_school_automatization.entity.TaskDocument;
 import ru.hits.car_school_automatization.entity.Team;
 import ru.hits.car_school_automatization.entity.User;
+import ru.hits.car_school_automatization.dto.DeadlinePenaltyDto;
 import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.enums.TaskType;
 import ru.hits.car_school_automatization.exception.BadRequestException;
@@ -24,6 +26,8 @@ import ru.hits.car_school_automatization.repository.ChannelRepository;
 import ru.hits.car_school_automatization.repository.TaskRepository;
 import ru.hits.car_school_automatization.repository.TeamRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.util.DeadlinePenaltyUtils;
+import ru.hits.car_school_automatization.util.RoleUtils;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -65,6 +69,7 @@ public class TaskService {
                 .isCanRedistribute(dto.getIsCanRedistribute())
                 .qualifiedMin(dto.getQualifiedMin())
                 .minTeamSize(dto.getMinTeamSize())
+                .deadlinePenalty(DeadlinePenaltyUtils.build(dto.getDeadlinePenalty()))
                 .votingDeadline(dto.getVotingDeadline())
                 .build();
 
@@ -89,6 +94,7 @@ public class TaskService {
         }
         validateQualifiedMin(task.getType(), task.getQualifiedMin());
         validateMinTeamSize(task.getMinTeamSize());
+        applyDeadlinePenaltyUpdate(task, dto.getDeadlinePenalty());
 
         return taskMapper.toDto(taskRepository.save(task));
     }
@@ -152,6 +158,7 @@ public class TaskService {
                 .isCanRedistribute(source.getIsCanRedistribute())
                 .qualifiedMin(source.getQualifiedMin())
                 .minTeamSize(source.getMinTeamSize())
+                .deadlinePenalty(DeadlinePenaltyUtils.clonePenalty(source.getDeadlinePenalty()))
                 .votingDeadline(source.getVotingDeadline())
                 .build();
 
@@ -224,12 +231,19 @@ public class TaskService {
         }
     }
 
+    private void applyDeadlinePenaltyUpdate(Task task, DeadlinePenaltyDto dto) {
+        if (dto == null) {
+            return;
+        }
+        task.setDeadlinePenalty(DeadlinePenaltyUtils.build(dto));
+    }
+
     private void validateTeacherLeadsChannel(String authHeader, Channel channel) {
         Long requesterId = tokenProvider.extractUserIdFromHeader(authHeader);
         User requester = userRepository.findById(requesterId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + requesterId + " не найден"));
 
-        if (!requester.getRole().contains(Role.TEACHER)) {
+        if (!RoleUtils.isTeacher(requester)) {
             throw new ForbiddenException("Только преподаватель может управлять заданиями");
         }
 

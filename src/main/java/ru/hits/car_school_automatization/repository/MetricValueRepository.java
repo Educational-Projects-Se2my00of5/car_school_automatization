@@ -12,5 +12,6 @@ import java.util.UUID;
 public interface MetricValueRepository extends JpaRepository<MetricValue, UUID> {
     Optional<MetricValue> findByMetricIdAndUserId(UUID metricId, Long userId);
     List<MetricValue> findByMetricIdInAndUserId(List<UUID> metricIds, Long userId);
+    List<MetricValue> findByMetricIdIn(List<UUID> metricIds);
     List<MetricValue> findByMetricId(UUID metricId);
 }
