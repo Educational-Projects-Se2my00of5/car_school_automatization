@@ -58,6 +58,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/channel/**").hasRole("MANAGER")
 
                         .requestMatchers("/posts").authenticated()
+                        .requestMatchers("/api/posts/*/visibility").hasAnyRole("TEACHER", "MANAGER")
                         .requestMatchers(HttpMethod.POST, "/channel/**").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.GET, "/channel/**").hasAnyRole("MANAGER", "STUDENT")
                         .requestMatchers(HttpMethod.DELETE, "/channel/**").hasRole("MANAGER")

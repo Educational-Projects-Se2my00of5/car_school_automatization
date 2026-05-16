@@ -5,12 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import ru.hits.car_school_automatization.dto.CreatePostDto;
-import ru.hits.car_school_automatization.dto.ControlDto;
-import ru.hits.car_school_automatization.dto.DeadlinePenaltyDto;
-import ru.hits.car_school_automatization.dto.PostDto;
-import ru.hits.car_school_automatization.dto.ShortPostDto;
-import ru.hits.car_school_automatization.dto.SolutionDto;
+import ru.hits.car_school_automatization.dto.*;
 import ru.hits.car_school_automatization.entity.Channel;
 import ru.hits.car_school_automatization.entity.DeadlinePenalty;
 import ru.hits.car_school_automatization.entity.Post;
@@ -299,6 +294,51 @@ public class PostService {
             postRepository.save(post);
             log.info("Файл удален из поста {}", postId);
         }
+    }
+
+    /**
+     * Обновление видимости метрик поста
+     */
+    public void updatePostVisibility(UUID postId, UpdatePostDto updatePostDto, String authHeader) {
+        log.info("Обновление видимости метрик поста с id: {}", postId);
+
+        Long userId = extractUserIdFromHeader(authHeader);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
+
+        if (!RoleUtils.isTeacherOrManager(user)) {
+            throw new ForbiddenException("Только преподаватели и менеджеры могут изменять видимость метрик");
+        }
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException("Пост с id " + postId + " не найден"));
+
+        Boolean isMetricsVisibleToStudents = updatePostDto.getIsMetricsVisibleToStudents();
+        Boolean isMetricValuesVisibleToStudents = updatePostDto.getIsMetricValuesVisibleToStudents();
+
+        // Валидация: isMetricValuesVisibleToStudents может быть true только если isMetricsVisibleToStudents тоже true
+        // Допустимые комбинации: (0,0), (1,0), (1,1)
+        // Недопустимая комбинация: (0,1) - когда isMetricsVisibleToStudents=false, а isMetricValuesVisibleToStudents=true
+        if (Boolean.FALSE.equals(isMetricsVisibleToStudents) && Boolean.TRUE.equals(isMetricValuesVisibleToStudents)) {
+            throw new BadRequestException("isMetricValuesVisibleToStudents может быть true только если isMetricsVisibleToStudents тоже true");
+        }
+
+        if (isMetricsVisibleToStudents != null) {
+            post.setIsMetricsVisibleToStudents(isMetricsVisibleToStudents);
+        }
+
+        if (isMetricValuesVisibleToStudents != null) {
+            post.setIsMetricValuesVisibleToStudents(isMetricValuesVisibleToStudents);
+        }
+
+        // Если isMetricsVisibleToStudents установлен в false, то isMetricValuesVisibleToStudents тоже должен быть false
+        if (Boolean.FALSE.equals(post.getIsMetricsVisibleToStudents())) {
+            post.setIsMetricValuesVisibleToStudents(false);
+        }
+
+        postRepository.save(post);
+        log.info("Видимость метрик поста {} успешно обновлена", postId);
     }
 
     /**

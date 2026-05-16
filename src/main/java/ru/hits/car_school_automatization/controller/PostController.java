@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.CreatePostDto;
 import ru.hits.car_school_automatization.dto.PostDto;
 import ru.hits.car_school_automatization.dto.ShortPostDto;
+import ru.hits.car_school_automatization.dto.UpdatePostDto;
 import ru.hits.car_school_automatization.service.PostService;
 
 import java.util.List;
@@ -80,5 +81,14 @@ public class PostController {
             @RequestParam Long userId,
             @RequestParam String channelId) {
         return postService.getUserTasks(userId, channelId);
+    }
+
+    @PatchMapping("/{postId}/visibility")
+    @Operation(summary = "Обновление видимости метрик поста")
+    public void updatePostVisibility(
+            @PathVariable UUID postId,
+            @Valid @RequestBody UpdatePostDto updatePostDto,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        postService.updatePostVisibility(postId, updatePostDto, authHeader);
     }
 }
