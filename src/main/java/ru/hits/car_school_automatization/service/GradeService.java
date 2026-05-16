@@ -16,6 +16,7 @@ import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.DeadlinePenaltyUnit;
 import ru.hits.car_school_automatization.enums.MetricType;
 import ru.hits.car_school_automatization.enums.PostType;
+import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
@@ -41,6 +42,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import ru.hits.car_school_automatization.dto.UserGradeDto;
 
 @Service
 @RequiredArgsConstructor
@@ -82,6 +85,37 @@ public class GradeService {
         return mark;
     }
 
+    public List<UserGradeDto> getPostGrades(UUID postId, Long userId, String authHeader) {
+        User requester = getUserFromHeader(authHeader);
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException("Пост не найден"));
+        if (post.getType() != PostType.TASK) {
+            throw new BadRequestException("Оценки доступны только для TASK");
+        }
+
+        if (userId != null) {
+            double value = getPostGrade(postId, userId, authHeader);
+            return List.of(UserGradeDto.builder().userId(userId).value(value).build());
+        }
+
+        if (!RoleUtils.isTeacherOrManager(requester)) {
+            double value = getPostGrade(postId, requester.getId(), authHeader);
+            return List.of(UserGradeDto.builder().userId(requester.getId()).value(value).build());
+        }
+
+        var channel = channelRepository.findById(post.getChannelId())
+                .orElseThrow(() -> new NotFoundException("Предмет не найден"));
+
+        return channel.getUsers().stream()
+                .filter(u -> u.getRole() != null && u.getRole().contains(Role.STUDENT))
+                .map(u -> UserGradeDto.builder()
+                        .userId(u.getId())
+                        .value(getPostGrade(postId, u.getId(), authHeader))
+                        .build())
+                .toList();
+    }
+
     public double getTaskGrade(UUID taskId, Long userId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
         Long targetUserId = resolveTargetUserId(requester, userId);
@@ -105,6 +139,69 @@ public class GradeService {
                 getTeamSubmissionTime(taskId, team.getId()));
 
         return mark;
+    }
+
+    public List<UserGradeDto> getTaskGrades(UUID taskId, Long userId, String authHeader) {
+        User requester = getUserFromHeader(authHeader);
+
+        if (userId != null) {
+            double value = getTaskGrade(taskId, userId, authHeader);
+            return List.of(UserGradeDto.builder().userId(userId).value(value).build());
+        }
+
+        if (!RoleUtils.isTeacherOrManager(requester)) {
+            double value = getTaskGrade(taskId, requester.getId(), authHeader);
+            return List.of(UserGradeDto.builder().userId(requester.getId()).value(value).build());
+        }
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new NotFoundException("Задание не найдено"));
+
+        List<Team> teams = teamRepository.findByTask_Id(taskId);
+        if (teams == null || teams.isEmpty()) {
+            return List.of();
+        }
+
+        return teams.stream()
+                .filter(t -> t.getUsers() != null)
+                .flatMap(t -> t.getUsers().stream())
+                .filter(u -> u.getRole() != null && u.getRole().contains(Role.STUDENT))
+                .collect(Collectors.toMap(User::getId, Function.identity(), (a, b) -> a))
+                .values().stream()
+                .map(u -> UserGradeDto.builder()
+                        .userId(u.getId())
+                        .value(getTaskGrade(task.getId(), u.getId(), authHeader))
+                        .build())
+                .toList();
+    }
+
+    public List<UserGradeDto> getTaskTeamGrades(UUID taskId, UUID teamId, String authHeader) {
+        User requester = getUserFromHeader(authHeader);
+        if (!RoleUtils.isTeacherOrManager(requester)) {
+            throw new ForbiddenException("Недостаточно прав для просмотра оценок команды");
+        }
+
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new NotFoundException("Команда не найдена"));
+
+        if (team.getTask() == null || team.getTask().getId() == null) {
+            throw new BadRequestException("Команда не привязана к заданию");
+        }
+        if (!team.getTask().getId().equals(taskId)) {
+            throw new BadRequestException("Команда не принадлежит заданию");
+        }
+
+        if (team.getUsers() == null || team.getUsers().isEmpty()) {
+            return List.of();
+        }
+
+        return team.getUsers().stream()
+                .filter(u -> u.getRole() != null && u.getRole().contains(Role.STUDENT))
+                .map(u -> UserGradeDto.builder()
+                        .userId(u.getId())
+                        .value(getTaskGrade(taskId, u.getId(), authHeader))
+                        .build())
+                .toList();
     }
 
     public double getChannelGrade(UUID channelId, Long userId, String authHeader) {
@@ -266,7 +363,7 @@ public class GradeService {
         if (userId == null) {
             return requester.getId();
         }
-        if (!RoleUtils.isTeacher(requester) && !requester.getId().equals(userId)) {
+        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(userId)) {
             throw new ForbiddenException("Недостаточно прав для просмотра оценки");
         }
         return userId;

@@ -6,8 +6,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.hits.car_school_automatization.dto.GradeDto;
+import ru.hits.car_school_automatization.dto.UserGradeDto;
 import ru.hits.car_school_automatization.service.GradeService;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -27,6 +29,15 @@ public class GradeController {
                 .targetId(postId)
                 .value(gradeService.getPostGrade(postId, null, authHeader))
                 .build();
+    }
+
+    @GetMapping("/post/{postId}/users")
+    @Operation(summary = "Получить оценки пользователей за пост")
+    public List<UserGradeDto> getPostGrades(
+            @PathVariable UUID postId,
+            @RequestParam(required = false) Long userId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return gradeService.getPostGrades(postId, userId, authHeader);
     }
 
     @GetMapping("/post/{postId}/user/{userId}")
@@ -50,6 +61,24 @@ public class GradeController {
                 .targetId(taskId)
                 .value(gradeService.getTaskGrade(taskId, null, authHeader))
                 .build();
+    }
+
+    @GetMapping("/task/{taskId}/users")
+    @Operation(summary = "Получить оценки пользователей за командное задание")
+    public List<UserGradeDto> getTaskGrades(
+            @PathVariable UUID taskId,
+            @RequestParam(required = false) Long userId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return gradeService.getTaskGrades(taskId, userId, authHeader);
+    }
+
+    @GetMapping("/task/{taskId}/team/{teamId}/users")
+    @Operation(summary = "Получить оценки пользователей команды за командное задание")
+    public List<UserGradeDto> getTaskTeamGrades(
+            @PathVariable UUID taskId,
+            @PathVariable UUID teamId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return gradeService.getTaskTeamGrades(taskId, teamId, authHeader);
     }
 
     @GetMapping("/task/{taskId}/user/{userId}")
