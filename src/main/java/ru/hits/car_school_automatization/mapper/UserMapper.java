@@ -13,6 +13,6 @@ public interface UserMapper {
 
     @Mapping(target = "isActive", constant = "true")
     User toEntity(UserDto.CreateUser dto);
-    
+
     UserDto.FullInfo toDto(User user);
 }

@@ -11,7 +11,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
- // оценка за задачу/предмет
+// оценка за задачу/предмет
 public class GradeDto {
     private UUID targetId;
     private Double value;

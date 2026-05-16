@@ -53,7 +53,7 @@ public class MetricValueService {
         Long targetUserId = resolveTargetUserId(requester, userId);
 
         var post = postRepository.findById(postId)
-            .orElseThrow(() -> new NotFoundException("Пост не найден"));
+                .orElseThrow(() -> new NotFoundException("Пост не найден"));
 
         boolean metricsVisibleToStudents = Boolean.TRUE.equals(post.getIsMetricsVisibleToStudents());
         boolean valuesVisibleToStudents = Boolean.TRUE.equals(post.getIsMetricValuesVisibleToStudents());
@@ -67,7 +67,7 @@ public class MetricValueService {
         Long targetUserId = resolveTargetUserId(requester, userId);
 
         var task = taskRepository.findById(taskId)
-            .orElseThrow(() -> new NotFoundException("Задание не найдено"));
+                .orElseThrow(() -> new NotFoundException("Задание не найдено"));
 
         boolean metricsVisibleToStudents = Boolean.TRUE.equals(task.getIsMetricsVisibleToStudents());
         boolean valuesVisibleToStudents = Boolean.TRUE.equals(task.getIsMetricValuesVisibleToStudents());
@@ -157,9 +157,9 @@ public class MetricValueService {
         List<UUID> metricIds = metrics.stream().map(Metric::getId).toList();
         Map<UUID, List<MetricValue>> valuesByMetric = (userId == null)
                 ? metricValueRepository.findByMetricIdIn(metricIds).stream()
-                .collect(Collectors.groupingBy(MetricValue::getMetricId))
+                  .collect(Collectors.groupingBy(MetricValue::getMetricId))
                 : metricValueRepository.findByMetricIdInAndUserId(metricIds, userId).stream()
-                .collect(Collectors.groupingBy(MetricValue::getMetricId));
+                  .collect(Collectors.groupingBy(MetricValue::getMetricId));
 
         List<MetricWithValuesDto> result = new ArrayList<>();
 

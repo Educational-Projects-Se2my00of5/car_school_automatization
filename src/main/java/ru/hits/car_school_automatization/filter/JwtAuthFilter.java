@@ -41,7 +41,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (token != null && jwtProvider.validateToken(token)) {
 
                 Long id = jwtProvider.getUserIdFromToken(token);
-                User userDetails =  userRepository.findById(id)
+                User userDetails = userRepository.findById(id)
                         .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

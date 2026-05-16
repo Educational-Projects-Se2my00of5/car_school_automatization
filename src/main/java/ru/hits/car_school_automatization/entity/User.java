@@ -63,6 +63,7 @@ public class User implements UserDetails {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return role.stream().map(role1 -> new SimpleGrantedAuthority("ROLE_" + role1.name())).toList();
     }
+
     @Override
     public @Nullable String getPassword() {
         return this.passwordHash;

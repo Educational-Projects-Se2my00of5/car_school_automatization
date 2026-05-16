@@ -21,7 +21,7 @@ public class CreateTaskDto {
 
     @NotBlank
     private String label;
-    
+
     @NotBlank
     private String text;
 

@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task, UUID> {
-	List<Task> findByChannel_Id(UUID channelId);
+    List<Task> findByChannel_Id(UUID channelId);
 
-	List<Task> findByVotingDeadlineBefore(Instant now);
+    List<Task> findByVotingDeadlineBefore(Instant now);
 }

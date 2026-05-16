@@ -70,7 +70,11 @@ open class ChannelController(
     }
 
     @PostMapping("{channelId}/user/{id}")
-    fun addUserToChannel(@PathVariable("id") id: Long, @PathVariable channelId: UUID, @Parameter(hidden = true) @RequestHeader("Authorization") authHeader: String) {
-        channelService.addUserToChannel(id, channelId,authHeader)
+    fun addUserToChannel(
+        @PathVariable("id") id: Long,
+        @PathVariable channelId: UUID,
+        @Parameter(hidden = true) @RequestHeader("Authorization") authHeader: String
+    ) {
+        channelService.addUserToChannel(id, channelId, authHeader)
     }
 }

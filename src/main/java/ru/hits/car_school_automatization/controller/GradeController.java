@@ -66,23 +66,23 @@ public class GradeController {
 
     @GetMapping("/channel/{channelId}")
     @Operation(summary = "Получить оценку за предмет (для текущего пользователя)")
-        public GradeDto getChannelGrade(
+    public GradeDto getChannelGrade(
             @PathVariable UUID channelId,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
-                return GradeDto.builder()
-                                .targetId(channelId)
+        return GradeDto.builder()
+                .targetId(channelId)
                 .value(gradeService.getChannelGrade(channelId, null, authHeader))
                 .build();
     }
 
     @GetMapping("/channel/{channelId}/user/{userId}")
     @Operation(summary = "Получить оценку за предмет для пользователя")
-        public GradeDto getChannelGradeForUser(
+    public GradeDto getChannelGradeForUser(
             @PathVariable UUID channelId,
             @PathVariable Long userId,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
-                return GradeDto.builder()
-                                .targetId(channelId)
+        return GradeDto.builder()
+                .targetId(channelId)
                 .value(gradeService.getChannelGrade(channelId, userId, authHeader))
                 .build();
     }

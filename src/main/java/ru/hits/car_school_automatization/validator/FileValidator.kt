@@ -4,7 +4,7 @@ import org.springframework.web.multipart.MultipartFile
 import ru.hits.car_school_automatization.exception.BadRequestException
 
 fun validateImage(file: MultipartFile) {
-    if ( file.contentType !in allowedTypes) {
+    if (file.contentType !in allowedTypes) {
         throw BadRequestException("Only images are allowed")
     }
 }

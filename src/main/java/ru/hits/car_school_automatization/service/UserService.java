@@ -119,7 +119,7 @@ public class UserService {
      */
     public UserDto.FullInfo changePassword(String authHeader, UserDto.ChangePassword dto) {
         String token = jwtTokenProvider.extractTokenFromHeader(authHeader);
-        
+
         if (!jwtTokenProvider.validateToken(token)) {
             throw new BadRequestException("Невалидный или истёкший токен");
         }
@@ -142,7 +142,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserDto.FullInfo getProfile(String authHeader) {
         String token = jwtTokenProvider.extractTokenFromHeader(authHeader);
-        
+
         if (!jwtTokenProvider.validateToken(token)) {
             throw new BadRequestException("Невалидный или истёкший токен");
         }
@@ -157,18 +157,18 @@ public class UserService {
      */
     public UserDto.FullInfo addRole(Long id, UserDto.RoleOperation dto) {
         User user = findUserById(id);
-        
+
         // Проверяем, есть ли уже такая роль
         if (user.getRole().contains(dto.getRole())) {
             // Роль уже есть, просто возвращаем текущее состояние без сохранения
             return userMapper.toDto(user);
         }
-        
+
         // Добавляем новую роль
         List<Role> updatedRoles = new ArrayList<>(user.getRole());
         updatedRoles.add(dto.getRole());
         user.setRole(updatedRoles);
-        
+
         User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
     }
@@ -178,22 +178,22 @@ public class UserService {
      */
     public UserDto.FullInfo removeRole(Long id, UserDto.RoleOperation dto) {
         User user = findUserById(id);
-        
+
         // Проверяем, есть ли роль у пользователя
         if (!user.getRole().contains(dto.getRole())) {
             throw new BadRequestException("У пользователя нет роли " + dto.getRole());
         }
-        
+
         // Проверяем, не последняя ли это роль
         if (user.getRole().size() == 1) {
             throw new BadRequestException("Невозможно удалить последнюю роль пользователя");
         }
-        
+
         // Удаляем роль
         List<Role> updatedRoles = new ArrayList<>(user.getRole());
         updatedRoles.remove(dto.getRole());
         user.setRole(updatedRoles);
-        
+
         User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
     }
@@ -204,13 +204,13 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<UserDto.FullInfo> searchUsers(UserDto.SearchParams searchParams) {
         String roleStr = searchParams.getRole() != null ? searchParams.getRole().name() : null;
-        
+
         List<User> users = userRepository.findByFilters(
                 searchParams.getName(),
                 searchParams.getEmail(),
                 roleStr
         );
-        
+
         return users.stream()
                 .map(userMapper::toDto)
                 .collect(Collectors.toList());

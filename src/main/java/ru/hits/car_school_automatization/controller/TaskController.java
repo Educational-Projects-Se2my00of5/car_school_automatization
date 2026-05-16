@@ -32,7 +32,7 @@ public class TaskController {
     @Operation(summary = "Создать задание")
     public TaskDto createTask(@Valid @ModelAttribute CreateTaskDto dto,
                               @RequestParam UUID channelId,
-                              @Parameter(hidden = true) @RequestHeader("Authorization")  String authHeader) {
+                              @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return taskService.createTask(dto, channelId, authHeader);
     }
 

@@ -10,6 +10,8 @@ import java.util.UUID;
 @Repository
 public interface MetricRepository extends JpaRepository<Metric, UUID> {
     List<Metric> findByPostId(UUID postId);
+
     List<Metric> findByTaskId(UUID taskId);
+
     boolean existsByPostId(UUID postId);
 }

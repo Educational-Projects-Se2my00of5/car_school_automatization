@@ -15,6 +15,8 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
 
     // Есть ли у этого пользователя другая команда в рамках того же задания?
     boolean existsByTask_IdAndUsers_IdAndIdNot(UUID taskId, Long userId, UUID teamId);
+
     boolean existsByTask_Id(UUID taskId);
+
     Optional<Team> findByTask_IdAndUsers_Id(UUID taskId, Long userId);
 }

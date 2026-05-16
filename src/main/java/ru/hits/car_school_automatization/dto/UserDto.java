@@ -125,7 +125,7 @@ public class UserDto {
     @AllArgsConstructor
     public static class SearchParams {
         private String name;
-        private String email; 
-        private Role role; 
+        private String email;
+        private Role role;
     }
 }

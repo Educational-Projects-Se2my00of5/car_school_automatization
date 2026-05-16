@@ -9,5 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface MetricChangeRepository extends JpaRepository<MetricChange, UUID> {
-	Optional<MetricChange> findFirstByMetricValueIdOrderByEditedAtDesc(UUID metricValueId);
+    Optional<MetricChange> findFirstByMetricValueIdOrderByEditedAtDesc(UUID metricValueId);
 }

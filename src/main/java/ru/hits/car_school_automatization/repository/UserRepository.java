@@ -21,9 +21,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * Поиск пользователей по фильтрам
-     * @param name поиск по имени или фамилии (поддерживает частичное совпадение)
+     *
+     * @param name  поиск по имени или фамилии (поддерживает частичное совпадение)
      * @param email поиск по email (поддерживает частичное совпадение)
-     * @param role фильтрация по роли
+     * @param role  фильтрация по роли
      * @return список найденных пользователей
      */
     @Query(value = "SELECT * FROM users WHERE " +
