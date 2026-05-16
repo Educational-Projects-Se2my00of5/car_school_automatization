@@ -110,24 +110,24 @@ public class TaskService {
 
     @Transactional
     public List<UserShortDto> getStudentsWithoutTeam(UUID taskId, String authHeader) {
-    Task task = taskRepository.findById(taskId)
-        .orElseThrow(() -> new NotFoundException("Задание с id " + taskId + " не найдено"));
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new NotFoundException("Задание с id " + taskId + " не найдено"));
 
-    validateUserInChannel(authHeader, task.getChannel());
+        validateUserInChannel(authHeader, task.getChannel());
 
-    Set<Long> usersInTeams = teamRepository.findByTask_Id(taskId).stream()
-        .flatMap(team -> team.getUsers().stream())
-        .map(User::getId)
-        .collect(Collectors.toSet());
+        Set<Long> usersInTeams = teamRepository.findByTask_Id(taskId).stream()
+                .flatMap(team -> team.getUsers().stream())
+                .map(User::getId)
+                .collect(Collectors.toSet());
 
-    return task.getChannel().getUsers().stream()
-        .filter(user -> user.getRole().contains(Role.STUDENT))
-        .filter(user -> !usersInTeams.contains(user.getId()))
-        .sorted(Comparator
-            .comparing(User::getFirstName, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
-            .thenComparing(User::getLastName, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)))
-        .map(UserMapperKt::toShort)
-        .toList();
+        return task.getChannel().getUsers().stream()
+                .filter(user -> user.getRole().contains(Role.STUDENT))
+                .filter(user -> !usersInTeams.contains(user.getId()))
+                .sorted(Comparator
+                        .comparing(User::getFirstName, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+                        .thenComparing(User::getLastName, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)))
+                .map(UserMapperKt::toShort)
+                .toList();
     }
 
     @Transactional

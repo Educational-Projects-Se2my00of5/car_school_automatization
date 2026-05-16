@@ -16,7 +16,6 @@ import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.DeadlinePenaltyUnit;
 import ru.hits.car_school_automatization.enums.MetricType;
 import ru.hits.car_school_automatization.enums.PostType;
-import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
@@ -30,6 +29,7 @@ import ru.hits.car_school_automatization.repository.TaskRepository;
 import ru.hits.car_school_automatization.repository.TaskSolutionRepository;
 import ru.hits.car_school_automatization.repository.TeamRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.util.RoleUtils;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -74,8 +74,8 @@ public class GradeService {
         double mark = calculateMetrics(metricRepository.findByPostId(postId), targetUserId);
         DeadlinePenalty postPenalty = post.getDeadlinePenalty();
         mark = applyDeadlinePenalty(mark, postPenalty != null ? postPenalty.getUnit() : null,
-            postPenalty != null ? postPenalty.getStep() : null,
-            postPenalty != null ? postPenalty.getValue() : null,
+                postPenalty != null ? postPenalty.getStep() : null,
+                postPenalty != null ? postPenalty.getValue() : null,
                 post.getDeadline() != null ? post.getDeadline().toInstant(ZoneOffset.UTC) : null,
                 getPostSubmissionTime(postId, targetUserId));
 
@@ -99,8 +99,8 @@ public class GradeService {
         double mark = calculateMetrics(metricRepository.findByTaskId(taskId), targetUserId);
         DeadlinePenalty taskPenalty = task.getDeadlinePenalty();
         mark = applyDeadlinePenalty(mark, taskPenalty != null ? taskPenalty.getUnit() : null,
-            taskPenalty != null ? taskPenalty.getStep() : null,
-            taskPenalty != null ? taskPenalty.getValue() : null,
+                taskPenalty != null ? taskPenalty.getStep() : null,
+                taskPenalty != null ? taskPenalty.getValue() : null,
                 team.getDeadline(),
                 getTeamSubmissionTime(taskId, team.getId()));
 
@@ -266,14 +266,10 @@ public class GradeService {
         if (userId == null) {
             return requester.getId();
         }
-        if (!isTeacher(requester) && !requester.getId().equals(userId)) {
+        if (!RoleUtils.isTeacher(requester) && !requester.getId().equals(userId)) {
             throw new ForbiddenException("Недостаточно прав для просмотра оценки");
         }
         return userId;
-    }
-
-    private boolean isTeacher(User user) {
-        return user.getRole().contains(Role.TEACHER);
     }
 
     private User getUserFromHeader(String authHeader) {

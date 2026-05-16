@@ -26,6 +26,7 @@ import ru.hits.car_school_automatization.repository.CaptainVoteRepository;
 import ru.hits.car_school_automatization.repository.TaskRepository;
 import ru.hits.car_school_automatization.repository.TeamRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.util.RoleUtils;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -224,9 +225,7 @@ public class TeamService {
         User requester = userRepository.findById(requesterId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + requesterId + " не найден"));
 
-        if (!requester.getRole().contains(Role.TEACHER)) {
-            throw new ForbiddenException("Только преподаватель может управлять командами задания");
-        }
+        RoleUtils.requireTeacher(requester, "Только преподаватель может управлять командами задания");
 
         boolean teachesChannel = task.getChannel().getUsers().stream()
                 .anyMatch(user -> user.getId().equals(requesterId));
@@ -260,7 +259,7 @@ public class TeamService {
             throw new BadRequestException("Выбор капитана недоступен: до дедлайна осталось менее часа");
         }
 
-        boolean isTeacher = requester.getRole().contains(Role.TEACHER);
+        boolean isTeacher = RoleUtils.isTeacher(requester);
         boolean isStudent = requester.getRole().contains(Role.STUDENT);
         boolean isInTeam = team.getUsers().stream().anyMatch(u -> u.getId().equals(userId));
 
@@ -416,7 +415,7 @@ public class TeamService {
                 .orElseThrow(() -> new NotFoundException("Команда с id " + teamId + " не найдена"));
 
         boolean isInTeam = team.getUsers().stream().anyMatch(u -> u.getId().equals(userId));
-        boolean isTeacher = requester.getRole().contains(Role.TEACHER);
+        boolean isTeacher = RoleUtils.isTeacher(requester);
 
         if (!isInTeam && !isTeacher) {
             throw new ForbiddenException("У вас нет прав на просмотр голосов");

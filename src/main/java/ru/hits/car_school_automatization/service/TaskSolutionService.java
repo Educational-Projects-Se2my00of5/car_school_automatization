@@ -13,6 +13,7 @@ import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.repository.*;
+import ru.hits.car_school_automatization.util.RoleUtils;
 
 import java.time.Instant;
 import java.util.*;
@@ -187,7 +188,7 @@ public class TaskSolutionService {
                 .orElseThrow(() -> new NotFoundException("Команда не найдена"));
 
         boolean inTeam = team.getUsers().stream().anyMatch(u -> u.getId().equals(requesterId));
-        boolean isTeacher = isTeacherOrManager(requester);
+        boolean isTeacher = RoleUtils.isTeacherOrManager(requester);
 
         if (!inTeam && !isTeacher) {
             throw new ForbiddenException("У вас нет прав на просмотр результатов голосования");
@@ -448,7 +449,7 @@ public class TaskSolutionService {
                 .orElseThrow(() -> new NotFoundException("Команда не найдена"));
 
         boolean inTeam = team.getUsers().stream().anyMatch(u -> u.getId().equals(requesterId));
-        boolean isTeacher = isTeacherOrManager(getUserById(requesterId));
+        boolean isTeacher = RoleUtils.isTeacherOrManager(getUserById(requesterId));
 
         if (!inTeam && !isTeacher) {
             throw new ForbiddenException("У вас нет доступа к этой команде");
@@ -467,7 +468,7 @@ public class TaskSolutionService {
         Task task = getTaskById(taskId);
         validateUserInTaskChannel(requesterId, task);
 
-        if (!isTeacherOrManager(requester)) {
+        if (!RoleUtils.isTeacherOrManager(requester)) {
             throw new ForbiddenException("Только преподаватель может просматривать выбранные решения всех команд");
         }
 
@@ -540,7 +541,7 @@ public class TaskSolutionService {
     }
 
     private void validateCanReadSolution(User requester, Long requesterId, TaskSolution solution, Task task) {
-        if (isTeacherOrManager(requester)) {
+        if (RoleUtils.isTeacherOrManager(requester)) {
             validateUserInTaskChannel(requesterId, task);
             return;
         }
@@ -559,13 +560,9 @@ public class TaskSolutionService {
             return;
         }
 
-        if (!isTeacherOrManager(requester)) {
+        if (!RoleUtils.isTeacherOrManager(requester)) {
             throw new ForbiddenException("Можно удалить только свое решение");
         }
-    }
-
-    private boolean isTeacherOrManager(User user) {
-        return user.getRole().contains(Role.TEACHER) || user.getRole().contains(Role.MANAGER);
     }
 
     private void validateUserInTaskChannel(Long userId, Task task) {
@@ -590,11 +587,11 @@ public class TaskSolutionService {
                 .taskId(solution.getTaskId())
                 .studentId(solution.getStudentId())
                 .documents(solution.getDocuments() == null ? new ArrayList<>() : solution.getDocuments().stream()
-                        .map(document -> TaskDocumentDto.builder()
-                                .fileName(document.getFileName())
-                                .fileUrl(document.getFileUrl())
-                                .build())
-                        .toList())
+                                                                                 .map(document -> TaskDocumentDto.builder()
+                                                                                                  .fileName(document.getFileName())
+                                                                                                  .fileUrl(document.getFileUrl())
+                                                                                                  .build())
+                                                                                 .toList())
                 .createdAt(solution.getCreatedAt())
                 .updatedAt(solution.getUpdatedAt())
                 .build();

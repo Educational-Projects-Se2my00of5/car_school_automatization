@@ -13,9 +13,6 @@ import ru.hits.car_school_automatization.dto.ShortPostDto;
 import ru.hits.car_school_automatization.dto.SolutionDto;
 import ru.hits.car_school_automatization.entity.Channel;
 import ru.hits.car_school_automatization.entity.DeadlinePenalty;
-import ru.hits.car_school_automatization.entity.Metric;
-import ru.hits.car_school_automatization.entity.MetricChange;
-import ru.hits.car_school_automatization.entity.MetricValue;
 import ru.hits.car_school_automatization.entity.Post;
 import ru.hits.car_school_automatization.entity.Solution;
 import ru.hits.car_school_automatization.entity.Task;
@@ -28,6 +25,7 @@ import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.repository.*;
 import ru.hits.car_school_automatization.util.DeadlinePenaltyUtils;
 import ru.hits.car_school_automatization.util.RoleUtils;
+import ru.hits.car_school_automatization.util.TeacherInfoResolver;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -53,12 +51,10 @@ public class PostService {
     private final UserRepository userRepository;
     private final ControlService controlService;
     private final GradeService gradeService;
-    private final MetricRepository metricRepository;
-    private final MetricValueRepository metricValueRepository;
-    private final MetricChangeRepository metricChangeRepository;
     private final FileStorageService fileStorageService;
     private final SolutionRepository solutionRepository;
     private final JwtTokenProvider tokenProvider;
+    private final TeacherInfoResolver teacherInfoResolver;
 
     /**
      * Создание нового поста
@@ -90,7 +86,7 @@ public class PostService {
                 .text(createPostDto.getText())
                 .type(createPostDto.getType())
                 .deadline(createPostDto.getDeadline())
-            .deadlinePenalty(DeadlinePenaltyUtils.build(createPostDto.getDeadlinePenalty()))
+                .deadlinePenalty(DeadlinePenaltyUtils.build(createPostDto.getDeadlinePenalty()))
                 .authorId(authorId)
                 .channelId(channelUuid)
                 .needMark(createPostDto.getNeedMark())
@@ -150,27 +146,27 @@ public class PostService {
         List<FeedItem> feedItems = new ArrayList<>();
 
         postRepository.findByChannelIdOrderByCreatedAtDesc(channelId)
-            .forEach(post -> feedItems.add(
-                new FeedItem(
-                    mapToShortPostDto(post, getAuthorFullName(post.getAuthorId())),
-                    post.getCreatedAt() == null ? Instant.EPOCH : post.getCreatedAt().toInstant(ZoneOffset.UTC)
-                )
-            ));
+                .forEach(post -> feedItems.add(
+                        new FeedItem(
+                                mapToShortPostDto(post, getAuthorFullName(post.getAuthorId())),
+                                post.getCreatedAt() == null ? Instant.EPOCH : post.getCreatedAt().toInstant(ZoneOffset.UTC)
+                        )
+                ));
 
         List<Task> tasks = taskRepository.findByChannel_Id(channelId);
         if (tasks != null && !tasks.isEmpty()) {
             tasks.forEach(task -> feedItems.add(
-                new FeedItem(
-                    mapTaskToShortPostDto(task),
-                    task.getStartAt() == null ? Instant.EPOCH : task.getStartAt()
-                )
+                    new FeedItem(
+                            mapTaskToShortPostDto(task),
+                            task.getStartAt() == null ? Instant.EPOCH : task.getStartAt()
+                    )
             ));
         }
 
         return feedItems.stream()
-            .sorted(Comparator.comparing(FeedItem::createdAt).reversed())
-            .map(FeedItem::dto)
-            .toList();
+                .sorted(Comparator.comparing(FeedItem::createdAt).reversed())
+                .map(FeedItem::dto)
+                .toList();
     }
 
     /**
@@ -337,7 +333,7 @@ public class PostService {
                 .id(task.getId().toString())
                 .authorName(authorName)
                 .label(task.getLabel())
-            .type(PostType.TEAM_TASK)
+                .type(PostType.TEAM_TASK)
                 .totalComments(0)
                 .build();
     }
@@ -353,11 +349,11 @@ public class PostService {
                 .text(post.getText())
                 .type(post.getType())
                 .deadline(post.getDeadline())
-            .deadlinePenalty(penalty != null ? DeadlinePenaltyDto.builder()
-                    .unit(penalty.getUnit())
-                    .step(penalty.getStep())
-                    .value(penalty.getValue())
-                    .build() : null)
+                .deadlinePenalty(penalty != null ? DeadlinePenaltyDto.builder()
+                                                   .unit(penalty.getUnit())
+                                                   .step(penalty.getStep())
+                                                   .value(penalty.getValue())
+                                                   .build() : null)
                 .authorName(authorName)
                 .fileUrl(post.getFileUrl())
                 .fileName(post.getFileName())
@@ -371,7 +367,7 @@ public class PostService {
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + solution.getStudentId() + " не найден"));
         Post task = postRepository.findById(solution.getTaskId()).orElse(null);
         Double mark = gradeService.getPostGrade(solution.getTaskId(), solution.getStudentId(), authHeader);
-        TeacherInfo teacherInfo = resolveTeacherInfo(solution.getTaskId(), solution.getStudentId());
+        var teacherInfo = teacherInfoResolver.resolve(solution.getTaskId(), solution.getStudentId());
         LocalDateTime markedAt = teacherInfo.lastEditedAt() != null
                 ? LocalDateTime.ofInstant(teacherInfo.lastEditedAt(), ZoneOffset.UTC)
                 : null;
@@ -394,43 +390,10 @@ public class PostService {
                 .build();
     }
 
-    private TeacherInfo resolveTeacherInfo(UUID postId, Long studentId) {
-        List<Metric> metrics = metricRepository.findByPostId(postId);
-        if (metrics.isEmpty()) {
-            return new TeacherInfo(null, null, null);
-        }
-
-        List<UUID> metricIds = metrics.stream().map(Metric::getId).toList();
-        List<MetricValue> values = metricValueRepository.findByMetricIdInAndUserId(metricIds, studentId);
-
-        MetricChange latest = null;
-        for (MetricValue value : values) {
-            MetricChange change = metricChangeRepository.findFirstByMetricValueIdOrderByEditedAtDesc(value.getId())
-                    .orElse(null);
-            if (change == null) {
-                continue;
-            }
-            if (latest == null || change.getEditedAt().isAfter(latest.getEditedAt())) {
-                latest = change;
-            }
-        }
-
-        if (latest == null) {
-            return new TeacherInfo(null, null, null);
-        }
-
-        User teacher = userRepository.findById(latest.getEditorId()).orElse(null);
-        String teacherName = teacher != null ? teacher.getFirstName() + " " + teacher.getLastName() : null;
-        return new TeacherInfo(latest.getEditorId(), teacherName, latest.getEditedAt());
-    }
-
-    private record TeacherInfo(Long teacherId, String teacherName, Instant lastEditedAt) {
-    }
-
     private String getAuthorFullName(Long id) {
         User author = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
-        return author.getFirstName() + " " +  author.getLastName();
+        return author.getFirstName() + " " + author.getLastName();
     }
 
     private String extractFilenameFromUrl(String fileUrl) {

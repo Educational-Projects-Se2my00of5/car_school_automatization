@@ -6,9 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.*;
-import ru.hits.car_school_automatization.entity.Metric;
-import ru.hits.car_school_automatization.entity.MetricChange;
-import ru.hits.car_school_automatization.entity.MetricValue;
 import ru.hits.car_school_automatization.entity.Post;
 import ru.hits.car_school_automatization.entity.Solution;
 import ru.hits.car_school_automatization.entity.User;
@@ -17,12 +14,11 @@ import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
-import ru.hits.car_school_automatization.repository.MetricChangeRepository;
-import ru.hits.car_school_automatization.repository.MetricRepository;
-import ru.hits.car_school_automatization.repository.MetricValueRepository;
 import ru.hits.car_school_automatization.repository.PostRepository;
 import ru.hits.car_school_automatization.repository.SolutionRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.util.RoleUtils;
+import ru.hits.car_school_automatization.util.TeacherInfoResolver;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -40,11 +36,9 @@ public class SolutionService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final GradeService gradeService;
-    private final MetricRepository metricRepository;
-    private final MetricValueRepository metricValueRepository;
-    private final MetricChangeRepository metricChangeRepository;
     private final JwtTokenProvider tokenProvider;
     private final FileStorageService fileStorageService;
+    private final TeacherInfoResolver teacherInfoResolver;
 
     /**
      * Студент отправляет решение
@@ -91,7 +85,7 @@ public class SolutionService {
         log.info("Студент {} отправил решение на задание {}", studentId, submitDto.getTaskId());
 
         return mapToDto(savedSolution, task.getLabel(),
-            student.getFirstName() + " " + student.getLastName(), authHeader);
+                student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -137,7 +131,7 @@ public class SolutionService {
         log.info("Студент {} обновил решение {}", studentId, solutionId);
 
         return mapToDto(updatedSolution, task.getLabel(),
-            student.getFirstName() + " " + student.getLastName(), authHeader);
+                student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -151,7 +145,7 @@ public class SolutionService {
                 .orElseThrow(() -> new NotFoundException("Решение с id " + solutionId + " не найдено"));
 
         // Проверка прав
-        if (!solution.getStudentId().equals(userId) && !isTeacherOrManager(user)) {
+        if (!solution.getStudentId().equals(userId) && !RoleUtils.isTeacherOrManager(user)) {
             throw new ForbiddenException("У вас нет прав на просмотр этого решения");
         }
 
@@ -159,7 +153,7 @@ public class SolutionService {
                 .orElseThrow(() -> new NotFoundException("Задание не найдено"));
         User student = getUserById(solution.getStudentId());
         return mapToDto(solution, task.getLabel(),
-            student.getFirstName() + " " + student.getLastName(), authHeader);
+                student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -169,7 +163,7 @@ public class SolutionService {
         Long userId = extractUserIdFromHeader(authHeader);
         User user = getUserById(userId);
 
-        if (!userId.equals(studentId) && !isTeacherOrManager(user)) {
+        if (!userId.equals(studentId) && !RoleUtils.isTeacherOrManager(user)) {
             throw new ForbiddenException("У вас нет прав на просмотр решений этого студента");
         }
 
@@ -178,7 +172,7 @@ public class SolutionService {
         return solutionRepository.findStudentSolutions(studentId).stream()
                 .map(solution -> {
                     Post task = postRepository.findById(solution.getTaskId()).orElse(null);
-                        return mapToDto(solution,
+                    return mapToDto(solution,
                             task != null ? task.getLabel() : null,
                             student.getFirstName() + " " + student.getLastName(), authHeader);
                 })
@@ -192,7 +186,7 @@ public class SolutionService {
         Long userId = extractUserIdFromHeader(authHeader);
         User user = getUserById(userId);
 
-        if (!isTeacherOrManager(user)) {
+        if (!RoleUtils.isTeacherOrManager(user)) {
             throw new ForbiddenException("Только преподаватели и менеджеры могут просматривать все решения");
         }
 
@@ -204,8 +198,8 @@ public class SolutionService {
                     User student = getUserById(solution.getStudentId());
 
                     return mapToDto(solution,
-                        task.getLabel(),
-                        student.getFirstName() + " " + student.getLastName(), authHeader);
+                            task.getLabel(),
+                            student.getFirstName() + " " + student.getLastName(), authHeader);
                 })
                 .collect(Collectors.toList());
     }
@@ -218,7 +212,7 @@ public class SolutionService {
         Long userId = extractUserIdFromHeader(authHeader);
         User user = getUserById(userId);
 
-        if (!userId.equals(studentId) && !isTeacherOrManager(user)) {
+        if (!userId.equals(studentId) && !RoleUtils.isTeacherOrManager(user)) {
             throw new ForbiddenException("У вас нет прав на просмотр");
         }
 
@@ -233,7 +227,7 @@ public class SolutionService {
                     SolutionDto solutionDto = null;
                     if (solution != null) {
                         solutionDto = mapToDto(solution, task.getLabel(),
-                            student.getFirstName() + " " + student.getLastName(), authHeader);
+                                student.getFirstName() + " " + student.getLastName(), authHeader);
                     }
 
                     return TaskWithSolutionDto.builder()
@@ -274,10 +268,6 @@ public class SolutionService {
         log.info("Решение с id {} удалено", solutionId);
     }
 
-    private boolean isTeacherOrManager(User user) {
-        return user.getRole().contains(Role.TEACHER) || user.getRole().contains(Role.MANAGER);
-    }
-
     private Long extractUserIdFromHeader(String authHeader) {
         String token = tokenProvider.extractTokenFromHeader(authHeader);
         if (!tokenProvider.validateToken(token)) {
@@ -300,7 +290,7 @@ public class SolutionService {
 
     private SolutionDto mapToDto(Solution solution, String taskLabel, String studentName, String authHeader) {
         Double mark = gradeService.getPostGrade(solution.getTaskId(), solution.getStudentId(), authHeader);
-        TeacherInfo teacherInfo = resolveTeacherInfo(solution.getTaskId(), solution.getStudentId());
+        var teacherInfo = teacherInfoResolver.resolve(solution.getTaskId(), solution.getStudentId());
         LocalDateTime markedAt = teacherInfo.lastEditedAt() != null
                 ? LocalDateTime.ofInstant(teacherInfo.lastEditedAt(), ZoneOffset.UTC)
                 : null;
@@ -321,39 +311,5 @@ public class SolutionService {
                 .updatedAt(solution.getUpdatedAt())
                 .markedAt(markedAt)
                 .build();
-    }
-
-    private TeacherInfo resolveTeacherInfo(UUID postId, Long studentId) {
-        List<Metric> metrics = metricRepository.findByPostId(postId);
-        if (metrics.isEmpty()) {
-            return new TeacherInfo(null, null, null);
-        }
-
-        List<UUID> metricIds = metrics.stream().map(Metric::getId).toList();
-        List<MetricValue> values = metricValueRepository.findByMetricIdInAndUserId(metricIds, studentId);
-
-        MetricChange latest = null;
-        for (MetricValue value : values) {
-            MetricChange change = metricChangeRepository.findFirstByMetricValueIdOrderByEditedAtDesc(value.getId())
-                    .orElse(null);
-            if (change == null) {
-                continue;
-            }
-            if (latest == null || change.getEditedAt().isAfter(latest.getEditedAt())) {
-                latest = change;
-            }
-        }
-
-        if (latest == null) {
-            return new TeacherInfo(null, null, null);
-        }
-
-        User teacher = userRepository.findById(latest.getEditorId()).orElse(null);
-        String teacherName = teacher != null ? teacher.getFirstName() + " " + teacher.getLastName() : null;
-
-        return new TeacherInfo(latest.getEditorId(), teacherName, latest.getEditedAt());
-    }
-
-    private record TeacherInfo(Long teacherId, String teacherName, java.time.Instant lastEditedAt) {
     }
 }
