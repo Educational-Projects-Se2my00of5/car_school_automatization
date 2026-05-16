@@ -76,6 +76,50 @@ public class MetricValueService {
         return toMetricsWithValues(metrics, requester, targetUserId, metricsVisibleToStudents, valuesVisibleToStudents);
     }
 
+    public List<MetricWithValuesDto> getTaskTeamMetricsWithValues(UUID taskId, UUID teamId, String authHeader) {
+        User requester = getUserFromHeader(authHeader);
+
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new NotFoundException("Команда не найдена"));
+
+        if (team.getTask() == null || team.getTask().getId() == null) {
+            throw new BadRequestException("Команда не привязана к заданию");
+        }
+        if (!team.getTask().getId().equals(taskId)) {
+            throw new BadRequestException("Команда не принадлежит заданию");
+        }
+
+        Long targetUserId;
+        if (RoleUtils.isTeacherOrManager(requester)) {
+            if (team.getUsers() == null || team.getUsers().isEmpty()) {
+                List<Metric> metrics = metricRepository.findByTaskId(taskId);
+                return metrics.stream()
+                        .map(metric -> MetricWithValuesDto.builder()
+                                .metric(metricMapper.toDto(metric))
+                                .values(List.of())
+                                .build())
+                        .toList();
+            }
+            targetUserId = team.getUsers().iterator().next().getId();
+        } else {
+            boolean isMember = team.getUsers() != null && team.getUsers().stream()
+                    .anyMatch(u -> requester.getId().equals(u.getId()));
+            if (!isMember) {
+                throw new ForbiddenException("Недостаточно прав для просмотра оценок команды");
+            }
+            targetUserId = requester.getId();
+        }
+
+        var task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new NotFoundException("Задание не найдено"));
+
+        boolean metricsVisibleToStudents = Boolean.TRUE.equals(task.getIsMetricsVisibleToStudents());
+        boolean valuesVisibleToStudents = Boolean.TRUE.equals(task.getIsMetricValuesVisibleToStudents());
+
+        List<Metric> metrics = metricRepository.findByTaskId(taskId);
+        return toMetricsWithValues(metrics, requester, targetUserId, metricsVisibleToStudents, valuesVisibleToStudents);
+    }
+
     public void setMetricValue(SetMetricValueDto dto, String authHeader) {
         User teacher = getUserFromHeader(authHeader);
         RoleUtils.requireTeacher(teacher, "Только преподаватель может управлять критериями");

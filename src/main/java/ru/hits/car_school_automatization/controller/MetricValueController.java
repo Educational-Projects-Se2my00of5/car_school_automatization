@@ -49,6 +49,15 @@ public class MetricValueController {
         return metricValueService.getTaskMetricsWithValues(taskId, userId, authHeader);
     }
 
+    @GetMapping("/task/{taskId}/values/team/{teamId}")
+    @Operation(summary = "Получить критерии и значения команды по командному заданию")
+    public List<MetricWithValuesDto> getTaskTeamMetricsWithValues(
+            @PathVariable UUID taskId,
+            @PathVariable UUID teamId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return metricValueService.getTaskTeamMetricsWithValues(taskId, teamId, authHeader);
+    }
+
     @PutMapping("/values")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Установить значение критерия пользователю")
