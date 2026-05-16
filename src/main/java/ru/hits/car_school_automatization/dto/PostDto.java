@@ -25,6 +25,9 @@ public class PostDto {
 
     private DeadlinePenaltyDto deadlinePenalty;
 
+    private Boolean isMetricsVisibleToStudents;
+    private Boolean isMetricValuesVisibleToStudents;
+
     private String authorName;
     private String fileUrl;
     private String fileName;

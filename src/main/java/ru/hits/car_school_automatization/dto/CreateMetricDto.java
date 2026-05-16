@@ -30,12 +30,6 @@ public class CreateMetricDto {
     @NotNull
     private MetricType type;
 
-    @NotNull
-    private Boolean isVisibleToStudents;
-
-    @NotNull
-    private Boolean isValuesVisibleToStudents;
-
     private UUID postId;
 
     private UUID taskId;

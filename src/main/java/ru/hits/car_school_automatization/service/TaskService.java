@@ -73,6 +73,17 @@ public class TaskService {
                 .votingDeadline(dto.getVotingDeadline())
                 .build();
 
+        if (dto.getIsMetricsVisibleToStudents() != null) {
+            task.setIsMetricsVisibleToStudents(dto.getIsMetricsVisibleToStudents());
+        }
+        if (dto.getIsMetricValuesVisibleToStudents() != null) {
+            task.setIsMetricValuesVisibleToStudents(dto.getIsMetricValuesVisibleToStudents());
+        }
+
+        if (!Boolean.TRUE.equals(task.getIsMetricsVisibleToStudents())) {
+            task.setIsMetricValuesVisibleToStudents(false);
+        }
+
         Task savedTask = taskRepository.save(task);
         List<Team> teams = teamFormationService.formByTeamType(savedTask, List.copyOf(channel.getUsers()), dto);
         if (!teams.isEmpty()) {
@@ -92,6 +103,11 @@ public class TaskService {
         if (dto.getDocuments() != null) {
             replaceTaskDocuments(task, dto.getDocuments());
         }
+
+        if (!Boolean.TRUE.equals(task.getIsMetricsVisibleToStudents())) {
+            task.setIsMetricValuesVisibleToStudents(false);
+        }
+
         validateQualifiedMin(task.getType(), task.getQualifiedMin());
         validateMinTeamSize(task.getMinTeamSize());
         applyDeadlinePenaltyUpdate(task, dto.getDeadlinePenalty());
@@ -161,6 +177,17 @@ public class TaskService {
                 .deadlinePenalty(DeadlinePenaltyUtils.clonePenalty(source.getDeadlinePenalty()))
                 .votingDeadline(source.getVotingDeadline())
                 .build();
+
+        if (source.getIsMetricsVisibleToStudents() != null) {
+            copy.setIsMetricsVisibleToStudents(source.getIsMetricsVisibleToStudents());
+        }
+        if (source.getIsMetricValuesVisibleToStudents() != null) {
+            copy.setIsMetricValuesVisibleToStudents(source.getIsMetricValuesVisibleToStudents());
+        }
+
+        if (!Boolean.TRUE.equals(copy.getIsMetricsVisibleToStudents())) {
+            copy.setIsMetricValuesVisibleToStudents(false);
+        }
 
         return taskMapper.toDto(taskRepository.save(copy));
     }

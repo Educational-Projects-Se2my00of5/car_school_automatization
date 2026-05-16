@@ -45,6 +45,10 @@ public class CreateTaskDto {
 
     private DeadlinePenaltyDto deadlinePenalty;
 
+    private Boolean isMetricsVisibleToStudents;
+
+    private Boolean isMetricValuesVisibleToStudents;
+
     private Instant votingDeadline;
 
     private Integer qualifiedMin;

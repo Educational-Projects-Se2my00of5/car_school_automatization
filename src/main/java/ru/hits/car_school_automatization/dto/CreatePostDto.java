@@ -36,6 +36,10 @@ public class CreatePostDto {
 
     private Boolean needMark;
 
+    private Boolean isMetricsVisibleToStudents;
+
+    private Boolean isMetricValuesVisibleToStudents;
+
     @NotNull
     private String channelId;
 

@@ -62,6 +62,12 @@ public class Task {
     @Embedded
     private DeadlinePenalty deadlinePenalty;
 
+    @Builder.Default
+    private Boolean isMetricsVisibleToStudents = false;
+
+    @Builder.Default
+    private Boolean isMetricValuesVisibleToStudents = false;
+
     private Instant votingDeadline;
 
     private Integer qualifiedMin;

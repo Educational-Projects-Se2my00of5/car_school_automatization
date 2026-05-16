@@ -93,6 +93,17 @@ public class PostService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
+        if (createPostDto.getIsMetricsVisibleToStudents() != null) {
+            post.setIsMetricsVisibleToStudents(createPostDto.getIsMetricsVisibleToStudents());
+        }
+        if (createPostDto.getIsMetricValuesVisibleToStudents() != null) {
+            post.setIsMetricValuesVisibleToStudents(createPostDto.getIsMetricValuesVisibleToStudents());
+        }
+
+        if (!Boolean.TRUE.equals(post.getIsMetricsVisibleToStudents())) {
+            post.setIsMetricValuesVisibleToStudents(false);
+        }
+
         if (!PostType.CONTROL.equals(post.getType())) {
             boolean hasControlTargets = (createPostDto.getControlPostTaskIds() != null && !createPostDto.getControlPostTaskIds().isEmpty())
                     || (createPostDto.getControlTaskIds() != null && !createPostDto.getControlTaskIds().isEmpty());
@@ -354,6 +365,8 @@ public class PostService {
                                                    .step(penalty.getStep())
                                                    .value(penalty.getValue())
                                                    .build() : null)
+                .isMetricsVisibleToStudents(post.getIsMetricsVisibleToStudents())
+                .isMetricValuesVisibleToStudents(post.getIsMetricValuesVisibleToStudents())
                 .authorName(authorName)
                 .fileUrl(post.getFileUrl())
                 .fileName(post.getFileName())

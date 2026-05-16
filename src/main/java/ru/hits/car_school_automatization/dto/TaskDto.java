@@ -28,6 +28,8 @@ public class TaskDto {
     private Integer qualifiedMin;
     private Integer minTeamSize;
     private DeadlinePenaltyDto deadlinePenalty;
+    private Boolean isMetricsVisibleToStudents;
+    private Boolean isMetricValuesVisibleToStudents;
     private Instant votingDeadline;
     private List<TeamDto> teams;
 }

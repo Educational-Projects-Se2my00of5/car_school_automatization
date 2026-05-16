@@ -48,12 +48,6 @@ public class Metric {
     @Column(nullable = false)
     private MetricType type;
 
-    @Column(nullable = false)
-    private Boolean isVisibleToStudents;
-
-    @Column(nullable = false)
-    private Boolean isValuesVisibleToStudents;
-
     @Column(name = "post_id")
     private UUID postId;
 

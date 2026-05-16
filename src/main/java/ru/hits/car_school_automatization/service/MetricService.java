@@ -68,8 +68,6 @@ public class MetricService {
                 .minValue(dto.getMinValue())
                 .maxValue(dto.getMaxValue())
                 .type(dto.getType())
-                .isVisibleToStudents(dto.getIsVisibleToStudents())
-                .isValuesVisibleToStudents(dto.getIsValuesVisibleToStudents())
                 .postId(dto.getPostId())
                 .taskId(dto.getTaskId())
                 .build();
@@ -86,22 +84,28 @@ public class MetricService {
 
     public List<MetricDto> getPostMetrics(UUID postId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
-        postRepository.findById(postId)
+        Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("Пост не найден"));
 
+        if (!RoleUtils.isTeacherOrManager(requester) && !Boolean.TRUE.equals(post.getIsMetricsVisibleToStudents())) {
+            return List.of();
+        }
+
         return metricRepository.findByPostId(postId).stream()
-            .filter(metric -> RoleUtils.isTeacher(requester) || Boolean.TRUE.equals(metric.getIsVisibleToStudents()))
                 .map(metricMapper::toDto)
                 .toList();
     }
 
     public List<MetricDto> getTaskMetrics(UUID taskId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
-        taskRepository.findById(taskId)
+        Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new NotFoundException("Задание не найдено"));
 
+        if (!RoleUtils.isTeacherOrManager(requester) && !Boolean.TRUE.equals(task.getIsMetricsVisibleToStudents())) {
+            return List.of();
+        }
+
         return metricRepository.findByTaskId(taskId).stream()
-            .filter(metric -> RoleUtils.isTeacher(requester) || Boolean.TRUE.equals(metric.getIsVisibleToStudents()))
                 .map(metricMapper::toDto)
                 .toList();
     }

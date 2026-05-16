@@ -25,7 +25,6 @@ import ru.hits.car_school_automatization.repository.TaskRepository;
 import ru.hits.car_school_automatization.repository.TeamRepository;
 import ru.hits.car_school_automatization.repository.UserRepository;
 import ru.hits.car_school_automatization.util.RoleUtils;
-import ru.hits.car_school_automatization.enums.Role;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,21 +51,29 @@ public class MetricValueService {
     public List<MetricWithValuesDto> getPostMetricsWithValues(UUID postId, Long userId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
         Long targetUserId = resolveTargetUserId(requester, userId);
-        postRepository.findById(postId)
-                .orElseThrow(() -> new NotFoundException("Пост не найден"));
+
+        var post = postRepository.findById(postId)
+            .orElseThrow(() -> new NotFoundException("Пост не найден"));
+
+        boolean metricsVisibleToStudents = Boolean.TRUE.equals(post.getIsMetricsVisibleToStudents());
+        boolean valuesVisibleToStudents = Boolean.TRUE.equals(post.getIsMetricValuesVisibleToStudents());
 
         List<Metric> metrics = metricRepository.findByPostId(postId);
-        return toMetricsWithValues(metrics, requester, targetUserId);
+        return toMetricsWithValues(metrics, requester, targetUserId, metricsVisibleToStudents, valuesVisibleToStudents);
     }
 
     public List<MetricWithValuesDto> getTaskMetricsWithValues(UUID taskId, Long userId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
         Long targetUserId = resolveTargetUserId(requester, userId);
-        taskRepository.findById(taskId)
-                .orElseThrow(() -> new NotFoundException("Задание не найдено"));
+
+        var task = taskRepository.findById(taskId)
+            .orElseThrow(() -> new NotFoundException("Задание не найдено"));
+
+        boolean metricsVisibleToStudents = Boolean.TRUE.equals(task.getIsMetricsVisibleToStudents());
+        boolean valuesVisibleToStudents = Boolean.TRUE.equals(task.getIsMetricValuesVisibleToStudents());
 
         List<Metric> metrics = metricRepository.findByTaskId(taskId);
-        return toMetricsWithValues(metrics, requester, targetUserId);
+        return toMetricsWithValues(metrics, requester, targetUserId, metricsVisibleToStudents, valuesVisibleToStudents);
     }
 
     public void setMetricValue(SetMetricValueDto dto, String authHeader) {
@@ -130,17 +137,24 @@ public class MetricValueService {
         metricChangeRepository.save(change);
     }
 
-    private List<MetricWithValuesDto> toMetricsWithValues(List<Metric> metrics, User requester, Long userId) {
-        List<Metric> visibleMetrics = metrics.stream()
-                .filter(metric -> RoleUtils.isTeacher(requester) || Boolean.TRUE.equals(metric.getIsVisibleToStudents()))
-                .toList();
+    private List<MetricWithValuesDto> toMetricsWithValues(
+            List<Metric> metrics,
+            User requester,
+            Long userId,
+            boolean metricsVisibleToStudents,
+            boolean valuesVisibleToStudents) {
 
-        if (visibleMetrics.isEmpty()) {
+        boolean privileged = RoleUtils.isTeacherOrManager(requester);
+        if (!privileged && !metricsVisibleToStudents) {
             return List.of();
         }
 
-        boolean canSeeValues = RoleUtils.isTeacher(requester);
-        List<UUID> metricIds = visibleMetrics.stream().map(Metric::getId).toList();
+        if (metrics == null || metrics.isEmpty()) {
+            return List.of();
+        }
+
+        boolean canSeeValues = privileged || (metricsVisibleToStudents && valuesVisibleToStudents);
+        List<UUID> metricIds = metrics.stream().map(Metric::getId).toList();
         Map<UUID, List<MetricValue>> valuesByMetric = (userId == null)
                 ? metricValueRepository.findByMetricIdIn(metricIds).stream()
                 .collect(Collectors.groupingBy(MetricValue::getMetricId))
@@ -149,9 +163,9 @@ public class MetricValueService {
 
         List<MetricWithValuesDto> result = new ArrayList<>();
 
-        for (Metric metric : visibleMetrics) {
+        for (Metric metric : metrics) {
             List<MetricValueDto> values;
-            if (!canSeeValues && !Boolean.TRUE.equals(metric.getIsValuesVisibleToStudents())) {
+            if (!canSeeValues) {
                 values = List.of();
             } else if (userId != null) {
                 MetricValue metricValue = valuesByMetric.getOrDefault(metric.getId(), List.of()).stream()
@@ -189,9 +203,9 @@ public class MetricValueService {
 
     private Long resolveTargetUserId(User requester, Long userId) {
         if (userId == null) {
-            return RoleUtils.isTeacher(requester) ? null : requester.getId();
+            return RoleUtils.isTeacherOrManager(requester) ? null : requester.getId();
         }
-        if (!RoleUtils.isTeacher(requester) && !requester.getId().equals(userId)) {
+        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(userId)) {
             throw new ForbiddenException("Недостаточно прав для просмотра значений");
         }
         return userId;

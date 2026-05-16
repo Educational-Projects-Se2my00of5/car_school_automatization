@@ -19,8 +19,6 @@ public class MetricDto {
     private Double minValue;
     private Double maxValue;
     private MetricType type;
-    private Boolean isVisibleToStudents;
-    private Boolean isValuesVisibleToStudents;
     private UUID postId;
     private UUID taskId;
 }

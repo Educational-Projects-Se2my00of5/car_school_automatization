@@ -52,6 +52,12 @@ public class Post {
     @Column(nullable = false)
     private Boolean needMark;
 
+    @Builder.Default
+    private Boolean isMetricsVisibleToStudents = false;
+
+    @Builder.Default
+    private Boolean isMetricValuesVisibleToStudents = false;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
