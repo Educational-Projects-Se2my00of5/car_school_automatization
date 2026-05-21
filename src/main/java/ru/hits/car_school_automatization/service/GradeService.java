@@ -70,13 +70,19 @@ public class GradeService {
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("Пост не найден"));
-        if (post.getType() != PostType.TASK) {
-            throw new BadRequestException("Оценка доступна только для TASK");
+
+        if (post.getType() != PostType.TASK && post.getType() != PostType.CONTROL) {
+            throw new BadRequestException("Оценка доступна только для TASK или CONTROL");
         }
 
         validateUserInChannel(post.getChannelId(), targetUserId);
 
-        double mark = calculateMetrics(metricRepository.findByPostId(postId), targetUserId);
+        double mark;
+        if (post.getType() == PostType.CONTROL) {
+            mark = calculateControlPostValue(postId, targetUserId);
+        } else {
+            mark = calculateMetrics(metricRepository.findByPostId(postId), targetUserId);
+        }
         DeadlinePenalty postPenalty = post.getDeadlinePenalty();
         mark = applyDeadlinePenalty(mark, postPenalty != null ? postPenalty.getUnit() : null,
                 postPenalty != null ? postPenalty.getStep() : null,
@@ -92,8 +98,8 @@ public class GradeService {
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("Пост не найден"));
-        if (post.getType() != PostType.TASK) {
-            throw new BadRequestException("Оценки доступны только для TASK");
+        if (post.getType() != PostType.TASK && post.getType() != PostType.CONTROL) {
+            throw new BadRequestException("Оценки доступны только для TASK или CONTROL");
         }
 
         if (userId != null) {
@@ -116,6 +122,43 @@ public class GradeService {
                         .value(getPostGrade(postId, u.getId(), authHeader))
                         .build())
                 .toList();
+    }
+
+    private double calculateControlPostValue(UUID postId, Long userId) {
+        List<Metric> metrics = metricRepository.findByPostId(postId);
+        if (metrics == null || metrics.isEmpty()) {
+            return 1.0;
+        }
+
+        Metric metric = resolveSingleCoefficientMetric(metrics);
+        if (metric == null) {
+            return 1.0;
+        }
+
+        Map<UUID, MetricValue> values = metricValueRepository
+                .findByMetricIdInAndUserId(List.of(metric.getId()), userId)
+                .stream()
+                .collect(Collectors.toMap(MetricValue::getMetricId, Function.identity()));
+
+        MetricValue metricValue = values.get(metric.getId());
+        return metricValue != null ? metricValue.getValue() : metric.getMinValue();
+    }
+
+    private Metric resolveSingleCoefficientMetric(List<Metric> metrics) {
+        if (metrics == null || metrics.isEmpty()) {
+            return null;
+        }
+
+        List<Metric> coefficientMetrics = metrics.stream()
+                .filter(m -> m.getType() == MetricType.COEFFICIENT)
+                .sorted(Comparator.comparing(Metric::getId))
+                .toList();
+
+        if (!coefficientMetrics.isEmpty()) {
+            return coefficientMetrics.getFirst();
+        }
+
+        return metrics.size() == 1 ? metrics.getFirst() : null;
     }
 
     public double getTaskGrade(UUID taskId, Long userId, String authHeader) {
@@ -449,17 +492,18 @@ public class GradeService {
             return 1.0;
         }
 
-        List<UUID> metricIds = metrics.stream().map(Metric::getId).toList();
-        Map<UUID, MetricValue> values = metricValueRepository.findByMetricIdInAndUserId(metricIds, userId).stream()
-                .collect(Collectors.toMap(MetricValue::getMetricId, Function.identity()));
-
-        double product = 1.0;
-        for (Metric metric : metrics) {
-            double value = values.get(metric.getId()) != null ? values.get(metric.getId()).getValue() : metric.getMinValue();
-            product *= value;
+        Metric metric = resolveSingleCoefficientMetric(metrics);
+        if (metric == null) {
+            return 1.0;
         }
 
-        return product;
+        Map<UUID, MetricValue> values = metricValueRepository
+                .findByMetricIdInAndUserId(List.of(metric.getId()), userId)
+                .stream()
+                .collect(Collectors.toMap(MetricValue::getMetricId, Function.identity()));
+
+        MetricValue metricValue = values.get(metric.getId());
+        return metricValue != null ? metricValue.getValue() : metric.getMinValue();
     }
 
     private Instant getPostSubmissionTime(UUID postId, Long userId) {

@@ -51,8 +51,8 @@ public class SolutionService {
         Post task = postRepository.findById(submitDto.getTaskId())
                 .orElseThrow(() -> new NotFoundException("Задание с id " + submitDto.getTaskId() + " не найдено"));
 
-        if (task.getType() != PostType.TASK) {
-            throw new BadRequestException("Решения можно отправлять только для заданий (TASK)");
+        if (task.getType() != PostType.TASK && task.getType() != PostType.CONTROL) {
+            throw new BadRequestException("Решения можно отправлять только для TASK или CONTROL");
         }
 
         // Проверяем, не отправлял ли уже
@@ -84,8 +84,8 @@ public class SolutionService {
         Solution savedSolution = solutionRepository.save(solution);
         log.info("Студент {} отправил решение на задание {}", studentId, submitDto.getTaskId());
 
-        return mapToDto(savedSolution, task.getLabel(),
-                student.getFirstName() + " " + student.getLastName(), authHeader);
+        return mapToDto(savedSolution, task,
+            student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -130,8 +130,8 @@ public class SolutionService {
         Solution updatedSolution = solutionRepository.save(solution);
         log.info("Студент {} обновил решение {}", studentId, solutionId);
 
-        return mapToDto(updatedSolution, task.getLabel(),
-                student.getFirstName() + " " + student.getLastName(), authHeader);
+        return mapToDto(updatedSolution, task,
+            student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -152,8 +152,8 @@ public class SolutionService {
         Post task = postRepository.findById(solution.getTaskId())
                 .orElseThrow(() -> new NotFoundException("Задание не найдено"));
         User student = getUserById(solution.getStudentId());
-        return mapToDto(solution, task.getLabel(),
-                student.getFirstName() + " " + student.getLastName(), authHeader);
+        return mapToDto(solution, task,
+            student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -172,9 +172,8 @@ public class SolutionService {
         return solutionRepository.findStudentSolutions(studentId).stream()
                 .map(solution -> {
                     Post task = postRepository.findById(solution.getTaskId()).orElse(null);
-                    return mapToDto(solution,
-                            task != null ? task.getLabel() : null,
-                            student.getFirstName() + " " + student.getLastName(), authHeader);
+                return mapToDto(solution, task,
+                    student.getFirstName() + " " + student.getLastName(), authHeader);
                 })
                 .collect(Collectors.toList());
     }
@@ -197,9 +196,8 @@ public class SolutionService {
                 .map(solution -> {
                     User student = getUserById(solution.getStudentId());
 
-                    return mapToDto(solution,
-                            task.getLabel(),
-                            student.getFirstName() + " " + student.getLastName(), authHeader);
+                return mapToDto(solution, task,
+                    student.getFirstName() + " " + student.getLastName(), authHeader);
                 })
                 .collect(Collectors.toList());
     }
@@ -216,8 +214,10 @@ public class SolutionService {
             throw new ForbiddenException("У вас нет прав на просмотр");
         }
 
-        // Получаем все задания в канале
-        List<Post> tasks = postRepository.findByChannelIdAndType(channelId, PostType.TASK);
+        // Получаем все посты, на которые студент может отправлять решения (TASK и CONTROL)
+        List<Post> tasks = postRepository.findByChannelIdOrderByCreatedAtDesc(channelId).stream()
+            .filter(p -> p.getType() == PostType.TASK || p.getType() == PostType.CONTROL)
+            .toList();
         User student = getUserById(studentId);
 
         return tasks.stream()
@@ -226,8 +226,8 @@ public class SolutionService {
 
                     SolutionDto solutionDto = null;
                     if (solution != null) {
-                        solutionDto = mapToDto(solution, task.getLabel(),
-                                student.getFirstName() + " " + student.getLastName(), authHeader);
+                        solutionDto = mapToDto(solution, task,
+                            student.getFirstName() + " " + student.getLastName(), authHeader);
                     }
 
                     return TaskWithSolutionDto.builder()
@@ -288,8 +288,11 @@ public class SolutionService {
         return fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
     }
 
-    private SolutionDto mapToDto(Solution solution, String taskLabel, String studentName, String authHeader) {
-        Double mark = gradeService.getPostGrade(solution.getTaskId(), solution.getStudentId(), authHeader);
+    private SolutionDto mapToDto(Solution solution, Post task, String studentName, String authHeader) {
+        Double mark = null;
+        if (task != null && (PostType.TASK.equals(task.getType()) || PostType.CONTROL.equals(task.getType()))) {
+            mark = gradeService.getPostGrade(solution.getTaskId(), solution.getStudentId(), authHeader);
+        }
         var teacherInfo = teacherInfoResolver.resolve(solution.getTaskId(), solution.getStudentId());
         LocalDateTime markedAt = teacherInfo.lastEditedAt() != null
                 ? LocalDateTime.ofInstant(teacherInfo.lastEditedAt(), ZoneOffset.UTC)
@@ -300,7 +303,7 @@ public class SolutionService {
                 .studentId(solution.getStudentId())
                 .studentName(studentName)
                 .taskId(solution.getTaskId())
-                .taskLabel(taskLabel)
+                .taskLabel(task != null ? task.getLabel() : null)
                 .teacherId(teacherInfo.teacherId())
                 .teacherName(teacherInfo.teacherName())
                 .text(solution.getText())

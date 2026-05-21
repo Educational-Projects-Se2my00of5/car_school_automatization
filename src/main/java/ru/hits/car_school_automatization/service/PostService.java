@@ -189,7 +189,7 @@ public class PostService {
                 .orElseThrow(() -> new NotFoundException("Пост с id " + postId + " не найден"));
 
         SolutionDto studentSolution = null;
-        if (PostType.TASK.equals(post.getType()) && isStudent(user)) {
+        if ((PostType.TASK.equals(post.getType()) || PostType.CONTROL.equals(post.getType())) && isStudent(user)) {
             studentSolution = solutionRepository.findByTaskIdAndStudentId(postId, userId)
                     .map(solution -> mapToSolutionDto(solution, authHeader))
                     .orElse(null);
@@ -419,7 +419,10 @@ public class PostService {
         User student = userRepository.findById(solution.getStudentId())
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + solution.getStudentId() + " не найден"));
         Post task = postRepository.findById(solution.getTaskId()).orElse(null);
-        Double mark = gradeService.getPostGrade(solution.getTaskId(), solution.getStudentId(), authHeader);
+        Double mark = null;
+        if (task != null && (PostType.TASK.equals(task.getType()) || PostType.CONTROL.equals(task.getType()))) {
+            mark = gradeService.getPostGrade(solution.getTaskId(), solution.getStudentId(), authHeader);
+        }
         var teacherInfo = teacherInfoResolver.resolve(solution.getTaskId(), solution.getStudentId());
         LocalDateTime markedAt = teacherInfo.lastEditedAt() != null
                 ? LocalDateTime.ofInstant(teacherInfo.lastEditedAt(), ZoneOffset.UTC)
