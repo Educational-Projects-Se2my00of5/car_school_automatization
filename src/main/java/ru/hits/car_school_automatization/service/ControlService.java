@@ -62,7 +62,7 @@ public class ControlService {
         getUserFromHeader(authHeader);
         Control control = controlRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("Контрольная не найдена"));
-        return controlMapper.toDto(control);
+        return controlMapper.toDto(control, postRepository, taskRepository);
     }
 
     public ControlDto updateControl(UUID postId, UpdateControlDto dto, String authHeader) {
@@ -76,7 +76,7 @@ public class ControlService {
         control.setPostTaskIds(postTaskIds);
         control.setTaskIds(taskIds);
 
-        return controlMapper.toDto(controlRepository.save(control));
+        return controlMapper.toDto(controlRepository.save(control), postRepository, taskRepository);
     }
 
     public void deleteControlByPostId(UUID postId) {

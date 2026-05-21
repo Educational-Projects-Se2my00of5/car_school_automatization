@@ -5,16 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Set;
 import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ControlDto {
-    private UUID postId;
-    private UUID channelId;
-    private Set<IdLabelDto> postTaskIds;
-    private Set<IdLabelDto> taskIds;
+public class IdLabelDto {
+    private UUID id;
+    private String label;
 }
