@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.hits.car_school_automatization.dto.MetricValueDto;
+import ru.hits.car_school_automatization.dto.MetricValueHistoryDto;
 import ru.hits.car_school_automatization.dto.MetricWithValuesDto;
 import ru.hits.car_school_automatization.dto.SetMetricValueDto;
 import ru.hits.car_school_automatization.dto.SetTeamMetricValueDto;
@@ -27,6 +28,7 @@ import ru.hits.car_school_automatization.repository.UserRepository;
 import ru.hits.car_school_automatization.util.RoleUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -74,6 +76,68 @@ public class MetricValueService {
 
         List<Metric> metrics = metricRepository.findByTaskId(taskId);
         return toMetricsWithValues(metrics, requester, targetUserId, metricsVisibleToStudents, valuesVisibleToStudents);
+    }
+
+    public List<MetricValueHistoryDto> getMetricValueHistory(UUID metricId, Long userId, String authHeader) {
+        User requester = getUserFromHeader(authHeader);
+        Long targetUserId = resolveTargetUserId(requester, userId);
+
+        Metric metric = metricRepository.findById(metricId)
+                .orElseThrow(() -> new NotFoundException("Критерий не найден"));
+
+        boolean metricsVisibleToStudents = true;
+        boolean valuesVisibleToStudents = true;
+        if (metric.getPostId() != null) {
+            var post = postRepository.findById(metric.getPostId())
+                    .orElseThrow(() -> new NotFoundException("Пост не найден"));
+            metricsVisibleToStudents = Boolean.TRUE.equals(post.getIsMetricsVisibleToStudents());
+            valuesVisibleToStudents = Boolean.TRUE.equals(post.getIsMetricValuesVisibleToStudents());
+        } else if (metric.getTaskId() != null) {
+            var task = taskRepository.findById(metric.getTaskId())
+                    .orElseThrow(() -> new NotFoundException("Задание не найдено"));
+            metricsVisibleToStudents = Boolean.TRUE.equals(task.getIsMetricsVisibleToStudents());
+            valuesVisibleToStudents = Boolean.TRUE.equals(task.getIsMetricValuesVisibleToStudents());
+        }
+
+        boolean privileged = RoleUtils.isTeacherOrManager(requester);
+        if (!privileged && !(metricsVisibleToStudents && valuesVisibleToStudents)) {
+            return List.of();
+        }
+
+        MetricValue metricValue = metricValueRepository.findByMetricIdAndUserId(metricId, targetUserId)
+                .orElse(null);
+        if (metricValue == null) {
+            return List.of();
+        }
+
+        List<MetricChange> changes = metricChangeRepository
+                .findByMetricValueIdOrderByEditedAtDesc(metricValue.getId());
+        if (changes.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, User> editors = new HashMap<>();
+        List<Long> editorIds = changes.stream()
+                .map(MetricChange::getEditorId)
+                .distinct()
+                .toList();
+        userRepository.findAllById(editorIds)
+                .forEach(user -> editors.put(user.getId(), user));
+
+        return changes.stream()
+                .map(change -> {
+                    User editor = editors.get(change.getEditorId());
+                    String editorName = editor != null
+                            ? editor.getFirstName() + " " + editor.getLastName()
+                            : null;
+                    return MetricValueHistoryDto.builder()
+                            .editorId(change.getEditorId())
+                            .editorName(editorName)
+                            .value(change.getEditValue())
+                            .editedAt(change.getEditedAt())
+                            .build();
+                })
+                .toList();
     }
 
     public List<MetricWithValuesDto> getTaskTeamMetricsWithValues(UUID taskId, UUID teamId, String authHeader) {

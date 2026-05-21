@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.hits.car_school_automatization.dto.MetricWithValuesDto;
+import ru.hits.car_school_automatization.dto.MetricValueHistoryDto;
 import ru.hits.car_school_automatization.dto.SetMetricValueDto;
 import ru.hits.car_school_automatization.dto.SetTeamMetricValueDto;
 import ru.hits.car_school_automatization.service.MetricValueService;
@@ -56,6 +57,15 @@ public class MetricValueController {
             @PathVariable UUID teamId,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         return metricValueService.getTaskTeamMetricsWithValues(taskId, teamId, authHeader);
+    }
+
+    @GetMapping("/values/history")
+    @Operation(summary = "Получить историю изменений значения критерия")
+    public List<MetricValueHistoryDto> getMetricValueHistory(
+            @RequestParam UUID metricId,
+            @RequestParam Long userId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return metricValueService.getMetricValueHistory(metricId, userId, authHeader);
     }
 
     @PutMapping("/values")
