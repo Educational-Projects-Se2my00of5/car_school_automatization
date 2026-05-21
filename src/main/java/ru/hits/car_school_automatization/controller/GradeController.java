@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.hits.car_school_automatization.dto.GradeDto;
+import ru.hits.car_school_automatization.dto.GradeTableDto;
 import ru.hits.car_school_automatization.dto.UserGradeDto;
 import ru.hits.car_school_automatization.service.GradeService;
 
@@ -102,6 +103,15 @@ public class GradeController {
                 .targetId(channelId)
                 .value(gradeService.getChannelGrade(channelId, null, authHeader))
                 .build();
+    }
+
+    @GetMapping("/channel/{channelId}/table")
+    @Operation(summary = "Получить таблицу оценок по предмету")
+    public GradeTableDto getChannelGradeTable(
+            @PathVariable UUID channelId,
+            @RequestParam(required = false) Long userId,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        return gradeService.getChannelGradeTable(channelId, userId, authHeader);
     }
 
     @GetMapping("/channel/{channelId}/user/{userId}")

@@ -3,6 +3,7 @@ package ru.hits.car_school_automatization.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.hits.car_school_automatization.entity.Channel;
 import ru.hits.car_school_automatization.entity.Control;
 import ru.hits.car_school_automatization.entity.DeadlinePenalty;
 import ru.hits.car_school_automatization.entity.Metric;
@@ -14,6 +15,7 @@ import ru.hits.car_school_automatization.entity.TaskSolution;
 import ru.hits.car_school_automatization.entity.Team;
 import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.DeadlinePenaltyUnit;
+import ru.hits.car_school_automatization.enums.GradeTargetType;
 import ru.hits.car_school_automatization.enums.MetricType;
 import ru.hits.car_school_automatization.enums.PostType;
 import ru.hits.car_school_automatization.enums.Role;
@@ -35,14 +37,14 @@ import ru.hits.car_school_automatization.util.RoleUtils;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import ru.hits.car_school_automatization.dto.GradeTableCellDto;
+import ru.hits.car_school_automatization.dto.GradeTableDto;
+import ru.hits.car_school_automatization.dto.GradeTableRowDto;
+import ru.hits.car_school_automatization.dto.GradeTableTargetDto;
 import ru.hits.car_school_automatization.dto.UserGradeDto;
 
 @Service
@@ -232,6 +234,154 @@ public class GradeService {
         }
 
         return count == 0 ? 0.0 : sum / count;
+    }
+
+    public GradeTableDto getChannelGradeTable(UUID channelId, Long userId, String authHeader) {
+        User requester = getUserFromHeader(authHeader);
+        validateUserInChannel(channelId, requester.getId());
+
+        if (!RoleUtils.isTeacherOrManager(requester)) {
+            if (userId != null && !requester.getId().equals(userId)) {
+                throw new ForbiddenException("Недостаточно прав для просмотра таблицы");
+            }
+            userId = requester.getId();
+        } else if (userId != null) {
+            validateUserInChannel(channelId, userId);
+        }
+
+        Channel channel = channelRepository.findById(channelId)
+                .orElseThrow(() -> new NotFoundException("Предмет не найден"));
+
+        List<User> students = channel.getUsers().stream()
+                .filter(u -> u.getRole() != null && u.getRole().contains(Role.STUDENT))
+                .toList();
+
+        if (userId != null) {
+            Long finalUserId = userId;
+            students = students.stream()
+                    .filter(u -> u.getId().equals(finalUserId))
+                    .toList();
+        }
+
+        List<Post> postTasks = postRepository.findByChannelIdAndType(channelId, PostType.TASK);
+        List<Task> tasks = taskRepository.findByChannel_Id(channelId);
+        List<Control> controls = controlRepository.findByChannelId(channelId);
+
+        Map<UUID, List<UUID>> controlIdsByTarget = new HashMap<>();
+        Map<UUID, Control> controlsById = controls.stream()
+                .collect(Collectors.toMap(Control::getPostId, Function.identity(), (a, b) -> a));
+
+        for (Control control : controls) {
+            UUID controlId = control.getPostId();
+            for (UUID postId : control.getPostTaskIds()) {
+                controlIdsByTarget
+                        .computeIfAbsent(postId, key -> new ArrayList<>())
+                        .add(controlId);
+            }
+            for (UUID taskId : control.getTaskIds()) {
+                controlIdsByTarget
+                        .computeIfAbsent(taskId, key -> new ArrayList<>())
+                        .add(controlId);
+            }
+        }
+
+        Map<UUID, Post> controlPostsById = postRepository.findAllById(controlsById.keySet()).stream()
+                .collect(Collectors.toMap(Post::getId, Function.identity(), (a, b) -> a));
+
+        List<GradeTableTargetWithTime> targetEntries = new ArrayList<>();
+        for (Post post : postTasks) {
+            Instant createdAt = post.getCreatedAt() != null
+                    ? post.getCreatedAt().toInstant(ZoneOffset.UTC)
+                    : Instant.EPOCH;
+            targetEntries.add(new GradeTableTargetWithTime(
+                    GradeTableTargetDto.builder()
+                            .targetId(post.getId())
+                            .label(post.getLabel())
+                            .type(GradeTargetType.POST_TASK)
+                            .build(),
+                    createdAt
+            ));
+        }
+
+        for (Task task : tasks) {
+            Instant startAt = task.getStartAt() != null ? task.getStartAt() : Instant.EPOCH;
+            targetEntries.add(new GradeTableTargetWithTime(
+                    GradeTableTargetDto.builder()
+                            .targetId(task.getId())
+                            .label(task.getLabel())
+                            .type(GradeTargetType.TASK)
+                            .build(),
+                    startAt
+            ));
+        }
+
+        for (Control control : controls) {
+            Post controlPost = controlPostsById.get(control.getPostId());
+            String label = controlPost != null ? controlPost.getLabel() : null;
+            Instant createdAt = controlPost != null && controlPost.getCreatedAt() != null
+                    ? controlPost.getCreatedAt().toInstant(ZoneOffset.UTC)
+                    : Instant.EPOCH;
+            targetEntries.add(new GradeTableTargetWithTime(
+                    GradeTableTargetDto.builder()
+                            .targetId(control.getPostId())
+                            .label(label)
+                            .type(GradeTargetType.CONTROL)
+                            .build(),
+                    createdAt
+            ));
+        }
+
+        List<GradeTableTargetDto> targets = targetEntries.stream()
+                .sorted(Comparator.comparing(GradeTableTargetWithTime::sortKey))
+                .map(GradeTableTargetWithTime::target)
+                .toList();
+
+        List<GradeTableRowDto> rows = new ArrayList<>();
+        for (User student : students) {
+            List<GradeTableCellDto> grades = new ArrayList<>();
+            double sum = 0.0;
+            int count = 0;
+            for (GradeTableTargetDto target : targets) {
+                Double rawValue;
+                if (target.getType() == GradeTargetType.POST_TASK) {
+                    rawValue = getPostGrade(target.getTargetId(), student.getId(), authHeader);
+                    double adjusted = applyControlCoefficients(rawValue, controls, target.getTargetId(), null, student.getId());
+                    sum += adjusted;
+                    count += 1;
+                } else if (target.getType() == GradeTargetType.TASK) {
+                    rawValue = getTaskGrade(target.getTargetId(), student.getId(), authHeader);
+                    double adjusted = applyControlCoefficients(rawValue, controls, null, target.getTargetId(), student.getId());
+                    sum += adjusted;
+                    count += 1;
+                } else {
+                    Control control = controlsById.get(target.getTargetId());
+                    rawValue = control != null ? calculateControlCoefficient(control, student.getId()) : null;
+                }
+
+                List<UUID> controlIds = controlIdsByTarget.getOrDefault(target.getTargetId(), List.of());
+                grades.add(GradeTableCellDto.builder()
+                        .targetId(target.getTargetId())
+                        .rawValue(rawValue)
+                        .controlIds(controlIds)
+                        .build());
+            }
+
+            String userName = student.getFirstName() + " " + student.getLastName();
+            rows.add(GradeTableRowDto.builder()
+                    .userId(student.getId())
+                    .userName(userName)
+                    .channelGrade(count == 0 ? 0.0 : sum / count)
+                    .grades(grades)
+                    .build());
+        }
+
+        return GradeTableDto.builder()
+                .targets(targets)
+                .rows(rows)
+                .build();
+    }
+
+    private record GradeTableTargetWithTime(GradeTableTargetDto target, Instant sortKey) {
     }
 
     private double calculateMetrics(List<Metric> metrics, Long userId) {
