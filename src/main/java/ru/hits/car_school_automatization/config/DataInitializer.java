@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.Role;
@@ -15,6 +16,7 @@ import java.util.List;
  * Инициализатор данных при старте приложения
  */
 @Component
+@Profile("!test")
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
