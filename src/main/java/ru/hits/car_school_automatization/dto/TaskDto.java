@@ -31,5 +31,9 @@ public class TaskDto {
     private Boolean isMetricsVisibleToStudents;
     private Boolean isMetricValuesVisibleToStudents;
     private Instant votingDeadline;
+    
+    private Boolean isP2pEnabled;
+    private P2PParamDto p2pParam;
+
     private List<TeamDto> teams;
 }

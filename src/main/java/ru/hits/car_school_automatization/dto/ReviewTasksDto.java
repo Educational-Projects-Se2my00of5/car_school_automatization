@@ -5,13 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdatePostDto {
-    private Boolean isMetricsVisibleToStudents;
-    private Boolean isMetricValuesVisibleToStudents;
-    private Boolean isP2pEnabled;
-    private P2PParamDto p2pParam;
+public class ReviewTasksDto {
+    private List<PersonalReviewTaskDto> personal;
+    private List<TeamReviewTaskDto> team;
 }

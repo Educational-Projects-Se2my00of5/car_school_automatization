@@ -40,6 +40,10 @@ public class CreatePostDto {
 
     private Boolean isMetricValuesVisibleToStudents;
 
+    private Boolean isP2pEnabled;
+
+    private P2PParamDto p2pParam;
+
     @NotNull
     private String channelId;
 

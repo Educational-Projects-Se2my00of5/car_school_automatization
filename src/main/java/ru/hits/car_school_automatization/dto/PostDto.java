@@ -28,6 +28,9 @@ public class PostDto {
     private Boolean isMetricsVisibleToStudents;
     private Boolean isMetricValuesVisibleToStudents;
 
+    private Boolean isP2pEnabled;
+    private P2PParamDto p2pParam;
+
     private String authorName;
     private String fileUrl;
     private String fileName;

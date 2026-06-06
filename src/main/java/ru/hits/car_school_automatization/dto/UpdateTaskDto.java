@@ -29,4 +29,6 @@ public class UpdateTaskDto {
     private Boolean isMetricValuesVisibleToStudents;
     private Instant votingDeadline;
     private Boolean isAnonymousVoting;
+    private Boolean isP2pEnabled;
+    private P2PParamDto p2pParam;
 }
