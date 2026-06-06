@@ -58,6 +58,10 @@ public class Post {
     @Builder.Default
     private Boolean isMetricValuesVisibleToStudents = false;
 
+    @Builder.Default
+    @Column(name = "is_p2p_enabled", nullable = false)
+    private Boolean isP2pEnabled = false;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 

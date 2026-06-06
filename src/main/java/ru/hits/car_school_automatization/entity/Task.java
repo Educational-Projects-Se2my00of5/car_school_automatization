@@ -75,6 +75,10 @@ public class Task {
     @Column(nullable = false)
     private Boolean isCanRedistribute;
 
+    @Builder.Default
+    @Column(name = "is_p2p_enabled", nullable = false)
+    private Boolean isP2pEnabled = false;
+
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<Team> teams = new HashSet<>();
