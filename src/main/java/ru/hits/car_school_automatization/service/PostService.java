@@ -50,6 +50,7 @@ public class PostService {
     private final SolutionRepository solutionRepository;
     private final JwtTokenProvider tokenProvider;
     private final TeacherInfoResolver teacherInfoResolver;
+    private final P2PParamRepository p2pParamRepository;
 
     /**
      * Создание нового поста
@@ -106,6 +107,8 @@ public class PostService {
                 throw new BadRequestException("Списки контрольной доступны только для CONTROL");
             }
         }
+        
+        post.setIsP2pEnabled(createPostDto.getIsP2pEnabled() != null ? createPostDto.getIsP2pEnabled() : false);
 
         MultipartFile file = createPostDto.getFile();
         if (file != null && !file.isEmpty()) {
@@ -116,6 +119,16 @@ public class PostService {
         }
 
         Post savedPost = postRepository.save(post);
+        
+        if (Boolean.TRUE.equals(savedPost.getIsP2pEnabled()) && createPostDto.getP2pParam() != null) {
+            ru.hits.car_school_automatization.entity.P2PParam param = ru.hits.car_school_automatization.entity.P2PParam.builder()
+                    .id(savedPost.getId())
+                    .type(createPostDto.getP2pParam().getType())
+                    .visibility(createPostDto.getP2pParam().getVisibility())
+                    .p2pDeadline(createPostDto.getP2pParam().getP2pDeadline())
+                    .build();
+            p2pParamRepository.save(param);
+        }
         if (PostType.CONTROL.equals(savedPost.getType())) {
             controlService.createControl(savedPost,
                     toUuidSet(createPostDto.getControlPostTaskIds()),
@@ -394,6 +407,13 @@ public class PostService {
      */
     private PostDto mapToPostDto(Post post, String authorName, SolutionDto studentSolution, ControlDto control) {
         DeadlinePenalty penalty = post.getDeadlinePenalty();
+        P2PParamDto p2pParamDto = null;
+        if (Boolean.TRUE.equals(post.getIsP2pEnabled())) {
+            p2pParamDto = p2pParamRepository.findById(post.getId())
+                    .map(param -> new P2PParamDto(param.getType(), param.getVisibility(), param.getP2pDeadline()))
+                    .orElse(null);
+        }
+
         return PostDto.builder()
                 .id(post.getId())
                 .label(post.getLabel())
@@ -407,6 +427,8 @@ public class PostService {
                                                    .build() : null)
                 .isMetricsVisibleToStudents(post.getIsMetricsVisibleToStudents())
                 .isMetricValuesVisibleToStudents(post.getIsMetricValuesVisibleToStudents())
+                .isP2pEnabled(post.getIsP2pEnabled())
+                .p2pParam(p2pParamDto)
                 .authorName(authorName)
                 .fileUrl(post.getFileUrl())
                 .fileName(post.getFileName())

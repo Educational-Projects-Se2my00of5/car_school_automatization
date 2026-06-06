@@ -50,7 +50,7 @@ public class PenaltySteps {
         // Validation in the next step
     }
 
-    @И("уменьшает максимальный балл на {int} \\* {double} = {double}")
+    @И("уменьшает максимальный балл на {int} * {double} = {double}")
     public void reducesMaxGrade(int steps, double amount, double totalPenalty) {
     }
 
@@ -79,11 +79,11 @@ public class PenaltySteps {
     public void studentSubmitsDaysLate(int days) {
     }
 
-    @Тогда("штрафной коэффициент = {double} \\* {double} = {double}")
+    @Тогда("штрафной коэффициент = {double} * {double} = {double}")
     public void penaltyCoefficientIs(double a, double b, double c) {
     }
 
-    @И("итоговая оценка = {double} \\* {double} = {double} \\(с округлением до сотых)")
+    @И("итоговая оценка = {double} * {double} = {double} \\(с округлением до сотых)")
     public void finalGradeIsCalculated(double original, double coef, double finalGrade) throws Exception {
         mockMvc.perform(get("/api/grades/1/student"))
                 .andExpect(jsonPath("$.finalGrade").value(finalGrade));

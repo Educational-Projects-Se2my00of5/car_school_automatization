@@ -50,6 +50,7 @@ public class TaskService {
     private final TeamRepository teamRepository;
     private final TeamFormationService teamFormationService;
     private final FileStorageService fileStorageService;
+    private final ru.hits.car_school_automatization.repository.P2PParamRepository p2pParamRepository;
 
     public TaskDto createTask(CreateTaskDto dto, UUID channelId, String authHeader) {
         Channel channel = channelRepository.findById(channelId)
@@ -112,7 +113,27 @@ public class TaskService {
         validateMinTeamSize(task.getMinTeamSize());
         applyDeadlinePenaltyUpdate(task, dto.getDeadlinePenalty());
 
-        return taskMapper.toDto(taskRepository.save(task));
+        if (dto.getIsP2pEnabled() != null) {
+            task.setIsP2pEnabled(dto.getIsP2pEnabled());
+            if (Boolean.TRUE.equals(dto.getIsP2pEnabled()) && dto.getP2pParam() != null) {
+                ru.hits.car_school_automatization.entity.P2PParam param = p2pParamRepository.findById(task.getId())
+                        .orElseGet(() -> ru.hits.car_school_automatization.entity.P2PParam.builder().id(task.getId()).build());
+                param.setType(dto.getP2pParam().getType());
+                param.setVisibility(dto.getP2pParam().getVisibility());
+                param.setP2pDeadline(dto.getP2pParam().getP2pDeadline());
+                p2pParamRepository.save(param);
+            }
+        }
+
+        Task savedTask = taskRepository.save(task);
+        TaskDto taskDto = taskMapper.toDto(savedTask);
+        if (Boolean.TRUE.equals(savedTask.getIsP2pEnabled())) {
+            taskDto.setIsP2pEnabled(savedTask.getIsP2pEnabled());
+            p2pParamRepository.findById(savedTask.getId()).ifPresent(param -> 
+                taskDto.setP2pParam(new ru.hits.car_school_automatization.dto.P2PParamDto(param.getType(), param.getVisibility(), param.getP2pDeadline()))
+            );
+        }
+        return taskDto;
     }
 
     @Transactional
