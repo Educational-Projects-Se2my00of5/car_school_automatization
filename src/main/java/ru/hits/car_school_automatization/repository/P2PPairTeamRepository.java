@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface P2PPairTeamRepository extends JpaRepository<P2PPairTeam, UUID> {
     List<P2PPairTeam> findByTaskId(UUID taskId);
+    List<P2PPairTeam> findByReviewerTeamIdIn(List<UUID> reviewerTeamIds);
 }

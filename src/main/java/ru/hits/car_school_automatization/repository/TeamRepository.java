@@ -19,4 +19,6 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
     boolean existsByTask_Id(UUID taskId);
 
     Optional<Team> findByTask_IdAndUsers_Id(UUID taskId, Long userId);
+
+    List<Team> findByUsers_Id(Long userId);
 }

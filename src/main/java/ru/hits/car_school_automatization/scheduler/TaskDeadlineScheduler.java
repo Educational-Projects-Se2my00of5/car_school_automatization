@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.hits.car_school_automatization.entity.Task;
 import ru.hits.car_school_automatization.entity.Team;
 import ru.hits.car_school_automatization.repository.TaskRepository;
+import ru.hits.car_school_automatization.service.P2PService;
 import ru.hits.car_school_automatization.service.TaskSolutionService;
 
 import java.time.Instant;
@@ -22,6 +23,7 @@ public class TaskDeadlineScheduler {
 
     private final TaskRepository taskRepository;
     private final TaskSolutionService taskSolutionService;
+    private final P2PService p2pService;
 
     @Scheduled(cron = "0 * * * * *")
     @Transactional
@@ -35,6 +37,14 @@ public class TaskDeadlineScheduler {
                 } catch (Exception e) {
                     log.error("Ошибка при автоматическом выборе решения для задания {} и команды {}",
                             task.getId(), team.getId(), e);
+                }
+            }
+            
+            if (Boolean.TRUE.equals(task.getIsP2pEnabled())) {
+                try {
+                    p2pService.generateP2PForTask(task.getId());
+                } catch (Exception e) {
+                    log.error("Ошибка при генерации P2P для задания {}", task.getId(), e);
                 }
             }
         }

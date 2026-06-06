@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface P2PPairPersonalRepository extends JpaRepository<P2PPairPersonal, UUID> {
     List<P2PPairPersonal> findByPostId(UUID postId);
+    List<P2PPairPersonal> findByReviewerId(Long reviewerId);
 }
