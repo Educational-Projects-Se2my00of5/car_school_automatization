@@ -12,16 +12,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AssignP2PPersonalDto {
+public class ReassignP2PTeamDto {
     @NotNull
-    private UUID postId;
-
-    @NotNull
-    private Long reviewerId;
-
-    @NotNull
-    private Long ownerId;
-
-    @NotNull
-    private UUID targetSolutionId;
+    private UUID newReviewerTeamId;
 }

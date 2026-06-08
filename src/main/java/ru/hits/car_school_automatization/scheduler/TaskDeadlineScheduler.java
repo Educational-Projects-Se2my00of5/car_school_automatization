@@ -6,13 +6,17 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import ru.hits.car_school_automatization.entity.Post;
 import ru.hits.car_school_automatization.entity.Task;
 import ru.hits.car_school_automatization.entity.Team;
+import ru.hits.car_school_automatization.repository.PostRepository;
 import ru.hits.car_school_automatization.repository.TaskRepository;
 import ru.hits.car_school_automatization.service.P2PService;
 import ru.hits.car_school_automatization.service.TaskSolutionService;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -22,6 +26,7 @@ import java.util.List;
 public class TaskDeadlineScheduler {
 
     private final TaskRepository taskRepository;
+    private final PostRepository postRepository;
     private final TaskSolutionService taskSolutionService;
     private final P2PService p2pService;
 
@@ -46,12 +51,23 @@ public class TaskDeadlineScheduler {
                             task.getId(), team.getId(), e);
                 }
             }
-            
+
             if (Boolean.TRUE.equals(task.getIsP2pEnabled())) {
                 try {
                     p2pService.generateP2PForTask(task.getId());
                 } catch (Exception e) {
                     log.error("Ошибка при генерации P2P для задания {}", task.getId(), e);
+                }
+            }
+        }
+
+        List<Post> posts = postRepository.findByDeadlineBefore(LocalDateTime.now());
+        for (Post post : posts) {
+            if (Boolean.TRUE.equals(post.getIsP2pEnabled())) {
+                try {
+                    p2pService.generateP2PForPost(post.getId());
+                } catch (Exception e) {
+                    log.error("Ошибка при генерации P2P для поста {}", post.getId(), e);
                 }
             }
         }

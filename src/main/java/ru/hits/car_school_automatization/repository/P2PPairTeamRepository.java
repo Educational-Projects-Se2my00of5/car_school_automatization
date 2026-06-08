@@ -13,9 +13,10 @@ import java.util.UUID;
 @Repository
 public interface P2PPairTeamRepository extends JpaRepository<P2PPairTeam, UUID> {
     List<P2PPairTeam> findByTaskId(UUID taskId);
+
     List<P2PPairTeam> findByReviewerTeamIdIn(List<UUID> reviewerTeamIds);
 
     @Query("SELECT p FROM P2PPairTeam p WHERE p.status = 'PENDING' AND p.taskId IN " +
-           "(SELECT param.id FROM P2PParam param WHERE param.p2pDeadline < :now)")
+            "(SELECT param.id FROM P2PParam param WHERE param.p2pDeadline < :now)")
     List<P2PPairTeam> findExpiredPendingPairs(@Param("now") Instant now);
 }

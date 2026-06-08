@@ -27,37 +27,49 @@ public class P2PController {
 
     @Operation(summary = "Получение пар для одиночного задания (поста)")
     @GetMapping("/personal/{postId}")
-    public List<P2PPairPersonalDto> getP2PPairPersonal(@PathVariable UUID postId) {
-        return p2pService.getP2PPairPersonal(postId);
+    public List<P2PPairPersonalDto> getP2PPairPersonal(@PathVariable UUID postId, @RequestHeader("Authorization") String authHeader) {
+        return p2pService.getP2PPairPersonal(postId, authHeader);
     }
 
     @Operation(summary = "Получение пар для командного задания (таски)")
     @GetMapping("/team/{taskId}")
-    public List<P2PPairTeamDto> getP2PPairTeam(@PathVariable UUID taskId) {
-        return p2pService.getP2PPairTeam(taskId);
+    public List<P2PPairTeamDto> getP2PPairTeam(@PathVariable UUID taskId, @RequestHeader("Authorization") String authHeader) {
+        return p2pService.getP2PPairTeam(taskId, authHeader);
     }
 
     @Operation(summary = "Ручное назначение пары для одиночного задания")
     @PostMapping("/personal/assign")
-    public P2PPairPersonalDto assignP2PPersonal(@Valid @RequestBody AssignP2PPersonalDto dto) {
-        return p2pService.assignP2PPersonal(dto);
+    public P2PPairPersonalDto assignP2PPersonal(@Valid @RequestBody AssignP2PPersonalDto dto, @RequestHeader("Authorization") String authHeader) {
+        return p2pService.assignP2PPersonal(dto, authHeader);
     }
 
     @Operation(summary = "Ручное назначение пары для командного задания")
     @PostMapping("/team/assign")
-    public P2PPairTeamDto assignP2PTeam(@Valid @RequestBody AssignP2PTeamDto dto) {
-        return p2pService.assignP2PTeam(dto);
+    public P2PPairTeamDto assignP2PTeam(@Valid @RequestBody AssignP2PTeamDto dto, @RequestHeader("Authorization") String authHeader) {
+        return p2pService.assignP2PTeam(dto, authHeader);
+    }
+
+    @Operation(summary = "Переназначение проверяющего для одиночного задания")
+    @PatchMapping("/personal/{pairId}/reassign")
+    public P2PPairPersonalDto reassignP2PPersonal(@PathVariable UUID pairId, @Valid @RequestBody ReassignP2PPersonalDto dto, @RequestHeader("Authorization") String authHeader) {
+        return p2pService.reassignP2PPersonal(pairId, dto, authHeader);
+    }
+
+    @Operation(summary = "Переназначение проверяющей команды для командного задания")
+    @PatchMapping("/team/{pairId}/reassign")
+    public P2PPairTeamDto reassignP2PTeam(@PathVariable UUID pairId, @Valid @RequestBody ReassignP2PTeamDto dto, @RequestHeader("Authorization") String authHeader) {
+        return p2pService.reassignP2PTeam(pairId, dto, authHeader);
     }
 
     @Operation(summary = "Отмена P2P назначения для одиночного задания")
     @DeleteMapping("/personal/{pairId}")
-    public void removeP2PPersonal(@PathVariable UUID pairId) {
-        p2pService.removeP2PPersonal(pairId);
+    public void removeP2PPersonal(@PathVariable UUID pairId, @RequestHeader("Authorization") String authHeader) {
+        p2pService.removeP2PPersonal(pairId, authHeader);
     }
 
     @Operation(summary = "Отмена P2P назначения для командного задания")
     @DeleteMapping("/team/{pairId}")
-    public void removeP2PTeam(@PathVariable UUID pairId) {
-        p2pService.removeP2PTeam(pairId);
+    public void removeP2PTeam(@PathVariable UUID pairId, @RequestHeader("Authorization") String authHeader) {
+        p2pService.removeP2PTeam(pairId, authHeader);
     }
 }

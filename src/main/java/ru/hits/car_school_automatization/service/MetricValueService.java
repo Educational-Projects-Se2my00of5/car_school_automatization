@@ -8,23 +8,13 @@ import ru.hits.car_school_automatization.dto.MetricValueHistoryDto;
 import ru.hits.car_school_automatization.dto.MetricWithValuesDto;
 import ru.hits.car_school_automatization.dto.SetMetricValueDto;
 import ru.hits.car_school_automatization.dto.SetTeamMetricValueDto;
-import ru.hits.car_school_automatization.entity.Metric;
-import ru.hits.car_school_automatization.entity.MetricChange;
-import ru.hits.car_school_automatization.entity.MetricValue;
-import ru.hits.car_school_automatization.entity.Team;
-import ru.hits.car_school_automatization.entity.User;
+import ru.hits.car_school_automatization.entity.*;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.mapper.MetricMapper;
 import ru.hits.car_school_automatization.mapper.MetricValueMapper;
-import ru.hits.car_school_automatization.repository.MetricChangeRepository;
-import ru.hits.car_school_automatization.repository.MetricRepository;
-import ru.hits.car_school_automatization.repository.MetricValueRepository;
-import ru.hits.car_school_automatization.repository.PostRepository;
-import ru.hits.car_school_automatization.repository.TaskRepository;
-import ru.hits.car_school_automatization.repository.TeamRepository;
-import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.repository.*;
 import ru.hits.car_school_automatization.util.RoleUtils;
 
 import java.util.ArrayList;
@@ -49,10 +39,10 @@ public class MetricValueService {
     private final MetricMapper metricMapper;
     private final MetricValueMapper metricValueMapper;
     private final JwtTokenProvider tokenProvider;
-    private final ru.hits.car_school_automatization.repository.P2PParamRepository p2pParamRepository;
-    private final ru.hits.car_school_automatization.repository.P2PPairPersonalRepository p2pPairPersonalRepository;
-
-    private final ru.hits.car_school_automatization.repository.P2PPairTeamRepository p2pPairTeamRepository;
+    private final P2PParamRepository p2pParamRepository;
+    private final P2PPairPersonalRepository p2pPairPersonalRepository;
+    private final P2PPairTeamRepository p2pPairTeamRepository;
+    private final TeamP2PReviewGradeRepository teamP2PReviewGradeRepository;
 
     public List<MetricWithValuesDto> getPostMetricsWithValues(UUID postId, Long userId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
@@ -201,21 +191,21 @@ public class MetricValueService {
             if (targetPostId == null) {
                 throw new ForbiddenException("Только преподаватель может управлять критериями");
             }
-            
-            ru.hits.car_school_automatization.entity.P2PParam p2pParam = 
+
+            P2PParam p2pParam =
                     p2pParamRepository.findById(targetPostId).orElse(null);
-            
+
             if (p2pParam == null) {
                 throw new ForbiddenException("P2P не включено для этого задания");
             }
-            
+
             if (p2pParam.getP2pDeadline() != null && java.time.Instant.now().isAfter(p2pParam.getP2pDeadline())) {
                 throw new BadRequestException("Дедлайн P2P проверки истек");
             }
-            
+
             boolean isReviewer = p2pPairPersonalRepository.findByPostId(targetPostId).stream()
                     .anyMatch(pair -> pair.getReviewerId().equals(requester.getId()) && pair.getOwnerId().equals(dto.getUserId()));
-                    
+
             if (!isReviewer) {
                 throw new ForbiddenException("Вы не назначены проверяющим для этого пользователя");
             }
@@ -242,13 +232,13 @@ public class MetricValueService {
         }
 
         if (!RoleUtils.isTeacherOrManager(requester)) {
-            ru.hits.car_school_automatization.entity.P2PParam p2pParam = 
+            P2PParam p2pParam =
                     p2pParamRepository.findById(metric.getTaskId()).orElse(null);
-            
+
             if (p2pParam == null) {
                 throw new ForbiddenException("P2P не включено для этого задания");
             }
-            
+
             if (p2pParam.getP2pDeadline() != null && java.time.Instant.now().isAfter(p2pParam.getP2pDeadline())) {
                 throw new BadRequestException("Дедлайн P2P проверки истек");
             }
@@ -256,59 +246,101 @@ public class MetricValueService {
             List<Team> userTeams = teamRepository.findByUsers_Id(requester.getId()).stream()
                     .filter(t -> t.getTask() != null && t.getTask().getId().equals(metric.getTaskId()))
                     .toList();
-            
+
             if (userTeams.isEmpty()) {
                 throw new ForbiddenException("Вы не состоите в команде для этого задания");
             }
-            
+
             Team userTeam = userTeams.get(0);
             UUID userTeamId = userTeam.getId();
 
-            boolean isReviewer = p2pPairTeamRepository.findByTaskId(metric.getTaskId()).stream()
-                    .anyMatch(pair -> pair.getReviewerTeamId().equals(userTeamId) && pair.getOwnerTeamId().equals(dto.getTeamId()));
-                    
-            if (!isReviewer) {
+            P2PPairTeam p2pPair = p2pPairTeamRepository.findByTaskId(metric.getTaskId()).stream()
+                    .filter(pair -> pair.getReviewerTeamId().equals(userTeamId) && pair.getOwnerTeamId().equals(dto.getTeamId()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (p2pPair == null) {
                 throw new ForbiddenException("Ваша команда не назначена проверяющей для этой команды");
             }
 
-            // check if captain logic applies: if team has a captain, only captain can vote
+            validateMetricValue(metric, dto.getValue());
+
+            if (targetTeam.getUsers() == null || targetTeam.getUsers().isEmpty()) {
+                return;
+            }
+
             if (userTeam.getCaptainId() != null) {
                 if (!userTeam.getCaptainId().equals(requester.getId())) {
                     throw new ForbiddenException("В команде есть капитан. Только капитан может выставлять оценку проверяемой команде.");
                 }
+                targetTeam.getUsers().forEach(user -> upsertMetricValue(metric.getId(), user.getId(), dto.getValue(), requester.getId()));
+            } else {
+                // Team without captain: Average the latest grades of all reviewing team members
+                TeamP2PReviewGrade reviewGrade = teamP2PReviewGradeRepository
+                        .findByP2pPairTeamIdAndReviewerIdAndMetricId(p2pPair.getId(), requester.getId(), metric.getId())
+                        .map(existing -> {
+                            existing.setValue(dto.getValue());
+                            return existing;
+                        })
+                        .orElseGet(() -> TeamP2PReviewGrade.builder()
+                                .p2pPairTeamId(p2pPair.getId())
+                                .reviewerId(requester.getId())
+                                .metricId(metric.getId())
+                                .value(dto.getValue())
+                                .build());
+                teamP2PReviewGradeRepository.save(reviewGrade);
+
+                List<TeamP2PReviewGrade> allGrades = teamP2PReviewGradeRepository
+                        .findByP2pPairTeamIdAndMetricId(p2pPair.getId(), metric.getId());
+
+                double sum = allGrades.stream().mapToDouble(TeamP2PReviewGrade::getValue).sum();
+                double average = sum / allGrades.size();
+
+                targetTeam.getUsers().forEach(user -> upsertMetricValue(metric.getId(), user.getId(), average, requester.getId()));
             }
+        } else {
+            validateMetricValue(metric, dto.getValue());
+            if (targetTeam.getUsers() == null || targetTeam.getUsers().isEmpty()) {
+                return;
+            }
+            targetTeam.getUsers().forEach(user -> upsertMetricValue(metric.getId(), user.getId(), dto.getValue(), requester.getId()));
         }
-
-        validateMetricValue(metric, dto.getValue());
-
-        if (targetTeam.getUsers() == null || targetTeam.getUsers().isEmpty()) {
-            return;
-        }
-
-        targetTeam.getUsers().forEach(user -> upsertMetricValue(metric.getId(), user.getId(), dto.getValue(), requester.getId()));
     }
 
     public void applyPenaltyForMissedP2P(UUID metricId, Long userId) {
         Metric metric = metricRepository.findById(metricId)
                 .orElseThrow(() -> new NotFoundException("Критерий не найден"));
-        
-        Double minValue = metric.getMinValue();
-        if (minValue != null) {
-            upsertMetricValue(metricId, userId, minValue, userId);
-        }
+
+        Double penaltyValue = metric.getMinValue() != null ? metric.getMinValue() : 0.0;
+        upsertMetricValue(metricId, userId, penaltyValue, userId);
     }
 
     private void upsertMetricValue(UUID metricId, Long userId, Double value, Long editorId) {
-        MetricValue metricValue = metricValueRepository.findByMetricIdAndUserId(metricId, userId)
-                .map(existing -> {
-                    existing.setValue(value);
-                    return existing;
-                })
-                .orElseGet(() -> MetricValue.builder()
-                        .metricId(metricId)
-                        .userId(userId)
-                        .value(value)
-                        .build());
+        User editor = userRepository.findById(editorId).orElse(null);
+        boolean isEditorTeacher = editor != null && RoleUtils.isTeacherOrManager(editor);
+
+        MetricValue metricValue = metricValueRepository.findByMetricIdAndUserId(metricId, userId).orElse(null);
+
+        if (metricValue != null && !isEditorTeacher) {
+            List<MetricChange> changes = metricChangeRepository.findByMetricValueIdOrderByEditedAtDesc(metricValue.getId());
+            if (!changes.isEmpty()) {
+                MetricChange latestChange = changes.get(0);
+                User latestEditor = userRepository.findById(latestChange.getEditorId()).orElse(null);
+                if (latestEditor != null && RoleUtils.isTeacherOrManager(latestEditor)) {
+                    throw new ForbiddenException("Оценка уже переопределена преподавателем и не может быть изменена");
+                }
+            }
+        }
+
+        if (metricValue == null) {
+            metricValue = MetricValue.builder()
+                    .metricId(metricId)
+                    .userId(userId)
+                    .value(value)
+                    .build();
+        } else {
+            metricValue.setValue(value);
+        }
 
         MetricValue saved = metricValueRepository.save(metricValue);
 

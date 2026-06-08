@@ -22,4 +22,6 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     List<Post> findByChannelIdAndType(@Param("channelId") UUID channelId, @Param("type") PostType type);
 
     List<Post> getPostById(UUID id);
+
+    List<Post> findByDeadlineBefore(java.time.LocalDateTime now);
 }

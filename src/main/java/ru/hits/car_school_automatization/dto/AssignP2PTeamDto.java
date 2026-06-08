@@ -15,10 +15,10 @@ import java.util.UUID;
 public class AssignP2PTeamDto {
     @NotNull
     private UUID taskId;
-    
+
     @NotNull
     private UUID reviewerTeamId;
-    
+
     @NotNull
     private UUID ownerTeamId;
 

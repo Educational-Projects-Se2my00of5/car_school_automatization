@@ -12,6 +12,7 @@ import ru.hits.car_school_automatization.entity.Post;
 import ru.hits.car_school_automatization.entity.Solution;
 import ru.hits.car_school_automatization.entity.Task;
 import ru.hits.car_school_automatization.entity.User;
+import ru.hits.car_school_automatization.entity.P2PParam;
 import ru.hits.car_school_automatization.enums.PostType;
 import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
@@ -107,7 +108,7 @@ public class PostService {
                 throw new BadRequestException("Списки контрольной доступны только для CONTROL");
             }
         }
-        
+
         post.setIsP2pEnabled(createPostDto.getIsP2pEnabled() != null ? createPostDto.getIsP2pEnabled() : false);
 
         MultipartFile file = createPostDto.getFile();
@@ -119,9 +120,9 @@ public class PostService {
         }
 
         Post savedPost = postRepository.save(post);
-        
+
         if (Boolean.TRUE.equals(savedPost.getIsP2pEnabled()) && createPostDto.getP2pParam() != null) {
-            ru.hits.car_school_automatization.entity.P2PParam param = ru.hits.car_school_automatization.entity.P2PParam.builder()
+            P2PParam param = P2PParam.builder()
                     .id(savedPost.getId())
                     .type(createPostDto.getP2pParam().getType())
                     .visibility(createPostDto.getP2pParam().getVisibility())

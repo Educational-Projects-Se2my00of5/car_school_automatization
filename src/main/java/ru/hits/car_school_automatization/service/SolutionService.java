@@ -85,7 +85,7 @@ public class SolutionService {
         log.info("Студент {} отправил решение на задание {}", studentId, submitDto.getTaskId());
 
         return mapToDto(savedSolution, task,
-            student.getFirstName() + " " + student.getLastName(), authHeader);
+                student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -131,7 +131,7 @@ public class SolutionService {
         log.info("Студент {} обновил решение {}", studentId, solutionId);
 
         return mapToDto(updatedSolution, task,
-            student.getFirstName() + " " + student.getLastName(), authHeader);
+                student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -153,7 +153,7 @@ public class SolutionService {
                 .orElseThrow(() -> new NotFoundException("Задание не найдено"));
         User student = getUserById(solution.getStudentId());
         return mapToDto(solution, task,
-            student.getFirstName() + " " + student.getLastName(), authHeader);
+                student.getFirstName() + " " + student.getLastName(), authHeader);
     }
 
     /**
@@ -172,8 +172,8 @@ public class SolutionService {
         return solutionRepository.findStudentSolutions(studentId).stream()
                 .map(solution -> {
                     Post task = postRepository.findById(solution.getTaskId()).orElse(null);
-                return mapToDto(solution, task,
-                    student.getFirstName() + " " + student.getLastName(), authHeader);
+                    return mapToDto(solution, task,
+                            student.getFirstName() + " " + student.getLastName(), authHeader);
                 })
                 .collect(Collectors.toList());
     }
@@ -196,8 +196,8 @@ public class SolutionService {
                 .map(solution -> {
                     User student = getUserById(solution.getStudentId());
 
-                return mapToDto(solution, task,
-                    student.getFirstName() + " " + student.getLastName(), authHeader);
+                    return mapToDto(solution, task,
+                            student.getFirstName() + " " + student.getLastName(), authHeader);
                 })
                 .collect(Collectors.toList());
     }
@@ -216,8 +216,8 @@ public class SolutionService {
 
         // Получаем все посты, на которые студент может отправлять решения (TASK и CONTROL)
         List<Post> tasks = postRepository.findByChannelIdOrderByCreatedAtDesc(channelId).stream()
-            .filter(p -> p.getType() == PostType.TASK || p.getType() == PostType.CONTROL)
-            .toList();
+                .filter(p -> p.getType() == PostType.TASK || p.getType() == PostType.CONTROL)
+                .toList();
         User student = getUserById(studentId);
 
         return tasks.stream()
@@ -227,7 +227,7 @@ public class SolutionService {
                     SolutionDto solutionDto = null;
                     if (solution != null) {
                         solutionDto = mapToDto(solution, task,
-                            student.getFirstName() + " " + student.getLastName(), authHeader);
+                                student.getFirstName() + " " + student.getLastName(), authHeader);
                     }
 
                     return TaskWithSolutionDto.builder()
