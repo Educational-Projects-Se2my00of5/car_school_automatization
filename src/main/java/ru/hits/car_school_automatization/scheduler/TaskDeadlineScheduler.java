@@ -28,6 +28,13 @@ public class TaskDeadlineScheduler {
     @Scheduled(cron = "0 * * * * *")
     @Transactional
     public void autoSelectSolutionsAfterDeadline() {
+        // Обработка просроченных дедлайнов P2P проверок
+        try {
+            p2pService.processExpiredP2PPairs();
+        } catch (Exception e) {
+            log.error("Ошибка при обработке просроченных P2P проверок", e);
+        }
+
         List<Task> tasks = taskRepository.findByVotingDeadlineBefore(Instant.now());
 
         for (Task task : tasks) {

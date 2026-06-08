@@ -13,6 +13,7 @@ import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.mapper.P2PMapper;
 import ru.hits.car_school_automatization.repository.*;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,7 +34,42 @@ public class P2PService {
     private final TeamRepository teamRepository;
     private final SolutionRepository solutionRepository;
     private final TaskSolutionRepository taskSolutionRepository;
+    private final MetricRepository metricRepository;
+    private final MetricValueService metricValueService;
     private final P2PMapper p2PMapper;
+
+    public void processExpiredP2PPairs() {
+        Instant now = Instant.now();
+        
+        List<P2PPairPersonal> expiredPersonal = p2pPairPersonalRepository.findExpiredPendingPairs(now);
+        for (P2PPairPersonal pair : expiredPersonal) {
+            pair.setStatus(P2PPairStatus.EXPIRED);
+            p2pPairPersonalRepository.save(pair);
+            
+            List<Metric> metrics = metricRepository.findByPostId(pair.getPostId());
+            for (Metric metric : metrics) {
+                metricValueService.applyPenaltyForMissedP2P(metric.getId(), pair.getReviewerId());
+            }
+            log.info("P2P Personal {} expired, penalty applied to reviewer {}", pair.getId(), pair.getReviewerId());
+        }
+
+        List<P2PPairTeam> expiredTeam = p2pPairTeamRepository.findExpiredPendingPairs(now);
+        for (P2PPairTeam pair : expiredTeam) {
+            pair.setStatus(P2PPairStatus.EXPIRED);
+            p2pPairTeamRepository.save(pair);
+            
+            List<Metric> metrics = metricRepository.findByTaskId(pair.getTaskId());
+            Team reviewerTeam = teamRepository.findById(pair.getReviewerTeamId()).orElse(null);
+            if (reviewerTeam != null && reviewerTeam.getUsers() != null) {
+                for (User user : reviewerTeam.getUsers()) {
+                    for (Metric metric : metrics) {
+                        metricValueService.applyPenaltyForMissedP2P(metric.getId(), user.getId());
+                    }
+                }
+            }
+            log.info("P2P Team {} expired, penalty applied to reviewer team {}", pair.getId(), pair.getReviewerTeamId());
+        }
+    }
 
     @Transactional(readOnly = true)
     public ReviewTasksDto getReviewTasks() {
@@ -42,7 +78,14 @@ public class P2PService {
 
         List<PersonalReviewTaskDto> personalTasks = p2pPairPersonalRepository.findByReviewerId(userId)
                 .stream()
-                .map(p2PMapper::toPersonalReviewTaskDto)
+                .map(pair -> {
+                    PersonalReviewTaskDto dto = p2PMapper.toPersonalReviewTaskDto(pair);
+                    P2PParam param = p2pParamRepository.findById(pair.getPostId()).orElse(null);
+                    if (param != null && param.getVisibility() != ru.hits.car_school_automatization.enums.P2PVisibility.ALL) {
+                        dto.setOwnerId(null);
+                    }
+                    return dto;
+                })
                 .collect(Collectors.toList());
 
         List<UUID> teamIds = teamRepository.findByUsers_Id(userId)
@@ -53,7 +96,14 @@ public class P2PService {
         List<TeamReviewTaskDto> teamTasks = teamIds.isEmpty() ? List.of() :
                 p2pPairTeamRepository.findByReviewerTeamIdIn(teamIds)
                         .stream()
-                        .map(p2PMapper::toTeamReviewTaskDto)
+                        .map(pair -> {
+                            TeamReviewTaskDto dto = p2PMapper.toTeamReviewTaskDto(pair);
+                            P2PParam param = p2pParamRepository.findById(pair.getTaskId()).orElse(null);
+                            if (param != null && param.getVisibility() != ru.hits.car_school_automatization.enums.P2PVisibility.ALL) {
+                                dto.setOwnerTeamId(null);
+                            }
+                            return dto;
+                        })
                         .collect(Collectors.toList());
 
         return new ReviewTasksDto(personalTasks, teamTasks);
