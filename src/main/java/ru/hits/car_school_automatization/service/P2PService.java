@@ -86,7 +86,7 @@ public class P2PService {
                     PersonalReviewTaskDto dto = p2PMapper.toPersonalReviewTaskDto(pair);
                     P2PParam param = p2pParamRepository.findById(pair.getPostId()).orElse(null);
                     if (param != null && param.getVisibility() != ru.hits.car_school_automatization.enums.P2PVisibility.ALL) {
-                        dto.setOwnerId(null);
+                        dto.setOwner(null);
                     }
                     return dto;
                 })
@@ -104,7 +104,7 @@ public class P2PService {
                     TeamReviewTaskDto dto = p2PMapper.toTeamReviewTaskDto(pair);
                     P2PParam param = p2pParamRepository.findById(pair.getTaskId()).orElse(null);
                     if (param != null && param.getVisibility() != ru.hits.car_school_automatization.enums.P2PVisibility.ALL) {
-                        dto.setOwnerTeamId(null);
+                        dto.setOwnerTeam(null);
                     }
                     return dto;
                 })

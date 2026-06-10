@@ -14,8 +14,8 @@ import java.util.UUID;
 @AllArgsConstructor
 public class PersonalReviewTaskDto {
     private UUID id;
-    private UUID postId;
-    private Long ownerId;
+    private PostDto post;
+    private UserShortDto owner;
     private UUID targetSolutionId;
     private P2PPairStatus status;
 }

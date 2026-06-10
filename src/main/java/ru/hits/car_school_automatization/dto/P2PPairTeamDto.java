@@ -14,9 +14,9 @@ import java.util.UUID;
 @AllArgsConstructor
 public class P2PPairTeamDto {
     private UUID id;
-    private UUID taskId;
-    private UUID reviewerTeamId;
-    private UUID ownerTeamId;
+    private TaskDto task;
+    private TeamDto reviewerTeam;
+    private TeamDto ownerTeam;
     private UUID targetTaskSolutionId;
     private P2PPairStatus status;
 }
