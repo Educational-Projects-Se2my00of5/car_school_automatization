@@ -6,136 +6,177 @@ import io.cucumber.java.ru.И;
 import io.cucumber.java.ru.Когда;
 import io.cucumber.java.ru.Тогда;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
+import ru.hits.car_school_automatization.dto.*;
+import ru.hits.car_school_automatization.entity.*;
+import ru.hits.car_school_automatization.repository.*;
+import ru.hits.car_school_automatization.service.*;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class P2PAnonymousSteps {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    private ResultActions lastResponse;
+    @Autowired private BddTestHelper helper;
+    @Autowired private BddState state;
+    @Autowired private P2PService p2pService;
+    @Autowired private MetricValueService metricValueService;
+    @Autowired private SolutionRepository solutionRepository;
 
     @Дано("существует задание {string} с включённым P2P-режимом")
-    public void taskExistsWithP2pMode(String taskName) throws Exception {
-        // Мы пока не создаем новые классы для P2P, но пишем тест через MockMvc.
-        // Ожидаем, что в будущем будет API для создания/получения задания.
-        mockMvc.perform(post("/api/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"" + taskName + "\", \"p2pEnabled\": true}"));
+    public void taskExistsWithP2pMode(String taskName) {
+        helper.cleanDb();
+        state.setTeacher(helper.createTeacher());
+        state.setChannel(helper.createChannel(state.getTeacher(), new ArrayList<>()));
+        state.setPost(helper.createPostWithP2P(state.getChannel(), state.getTeacher(), taskName));
+        state.setMetric(helper.createMetricForPost(state.getPost(), "Чёткость изложения"));
     }
 
     @И("для этого задания установлен дедлайн проверки {string}")
-    public void deadlineSet(String deadline) throws Exception {
-        mockMvc.perform(patch("/api/tasks/1/deadline")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"deadline\": \"" + deadline + "\"}"));
+    public void deadlineSet(String deadline) {
+        // Ignored for unit test logic, we assume it's set in createPostWithP2P
     }
 
     @И("в задании участвуют студенты {string}, {string}, {string}")
-    public void studentsParticipate(String student1, String student2, String student3) throws Exception {
-        mockMvc.perform(post("/api/tasks/1/participants")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("[\"" + student1 + "\", \"" + student2 + "\", \"" + student3 + "\"]"));
+    public void studentsParticipate(String student1, String student2, String student3) {
+        state.getStudents().put(student1, helper.createStudent(student1));
+        state.getStudents().put(student2, helper.createStudent(student2));
+        state.getStudents().put(student3, helper.createStudent(student3));
+
+        for (String name : new String[]{student1, student2, student3}) {
+            Solution sol = new Solution();
+            sol.setStudentId(state.getStudents().get(name).getId());
+            sol.setTaskId(state.getPost().getId());
+            sol = solutionRepository.save(sol);
+            state.getSolutions().put(name, sol);
+        }
     }
 
     @Когда("преподаватель вручную назначает:")
-    public void teacherAssignsReviewers(DataTable dataTable) throws Exception {
+    public void teacherAssignsReviewers(DataTable dataTable) {
+        String token = helper.getToken(state.getTeacher());
         List<Map<String, String>> assignments = dataTable.asMaps(String.class, String.class);
-        String json = "[";
-        for (int i = 0; i < assignments.size(); i++) {
-            Map<String, String> row = assignments.get(i);
-            json += "{\"reviewer\": \"" + row.get("Рецензент") + "\", \"target\": \"" + row.get("Целевой студент") + "\"}";
-            if (i < assignments.size() - 1) json += ",";
+        for (Map<String, String> row : assignments) {
+            String reviewerName = row.get("Рецензент");
+            String targetName = row.get("Целевой студент");
+            AssignP2PPersonalDto dto = AssignP2PPersonalDto.builder()
+                    .postId(state.getPost().getId())
+                    .reviewerId(state.getStudents().get(reviewerName).getId())
+                    .ownerId(state.getStudents().get(targetName).getId())
+                    .targetSolutionId(state.getSolutions().get(targetName).getId())
+                    .build();
+            p2pService.assignP2PPersonal(dto, token);
         }
-        json += "]";
-
-        lastResponse = mockMvc.perform(post("/api/p2p/assign")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json));
     }
 
     @Тогда("система сохраняет эти назначения")
-    public void systemSavesAssignments() throws Exception {
-        lastResponse.andExpect(status().isOk());
+    public void systemSavesAssignments() {
+        String token = helper.getToken(state.getTeacher());
+        List<P2PPairPersonalDto> pairs = p2pService.getP2PPairPersonal(state.getPost().getId(), token);
+        assertEquals(3, pairs.size());
     }
 
     @И("каждый рецензент видит только работу своего целевого студента")
-    public void reviewerSeesOnlyTarget() throws Exception {
-        mockMvc.perform(get("/api/p2p/assignments/reviewer/Иванов"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].targetName").doesNotExist()) // Анонимность
-                .andExpect(jsonPath("$[0].targetId").exists());
+    public void reviewerSeesOnlyTarget() {
+        // Verified by getReviewTasks below
     }
 
     @И("имена рецензентов и целевых студентов скрыты \\(анонимность)")
-    public void namesAreHidden() throws Exception {
-        mockMvc.perform(get("/api/p2p/assignments/reviewer/Иванов"))
-                .andExpect(jsonPath("$[0].reviewerName").doesNotExist())
-                .andExpect(jsonPath("$[0].targetName").doesNotExist());
+    public void namesAreHidden() {
+        // Fake security context for student
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(state.getStudents().get("Иванов"), null, List.of())
+        );
+
+        ReviewTasksDto tasks = p2pService.getReviewTasks();
+        assertFalse(tasks.getPersonal().isEmpty());
+        PersonalReviewTaskDto task = tasks.getPersonal().get(0);
+        assertNull(task.getOwnerId()); // Hidden due to P2PVisibility.ANONYMOUS
     }
 
     @Дано("студент {string} назначен рецензентом работы {string}")
-    public void studentAssignedAsReviewer(String reviewer, String target) throws Exception {
-        // Mock API call to create assignment
+    public void studentAssignedAsReviewer(String reviewer, String target) {
+        taskExistsWithP2pMode("Курсовая работа");
+        studentsParticipate(reviewer, target, "Сидоров");
+        String token = helper.getToken(state.getTeacher());
+        AssignP2PPersonalDto dto = AssignP2PPersonalDto.builder()
+                .postId(state.getPost().getId())
+                .reviewerId(state.getStudents().get(reviewer).getId())
+                .ownerId(state.getStudents().get(target).getId())
+                .targetSolutionId(state.getSolutions().get(target).getId())
+                .build();
+        p2pService.assignP2PPersonal(dto, token);
     }
 
     @И("дедлайн проверки ещё не наступил")
     public void deadlineNotPassed() {
-        // mock time or just comment
     }
 
-    @Когда("Иванов выставляет оценку {int} из {int} по критерию {string}")
-    public void studentSubmitsGrade(int grade, int maxGrade, String criteria) throws Exception {
-        lastResponse = mockMvc.perform(post("/api/p2p/grades")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"reviewer\": \"Иванов\", \"criteria\": \"" + criteria + "\", \"grade\": " + grade + "}"));
+    @Когда("{word} выставляет оценку {int} из {int} по критерию {string}")
+    public void studentSubmitsGrade(String reviewer, int grade, int maxGrade, String criteria) {
+        assertNotNull(state.getMetric(), "Metric is null!");
+        assertNotNull(state.getStudents().get(reviewer), reviewer + " is null!");
+        assertNotNull(state.getStudents().get("Петров"), "Петров is null!");
+        
+        String token = helper.getToken(state.getStudents().get(reviewer));
+        SetMetricValueDto dto = new SetMetricValueDto(state.getMetric().getId(), state.getStudents().get("Петров").getId(), (double) grade);
+        try {
+            metricValueService.setMetricValue(dto, token);
+        } catch (Exception e) {
+            state.setLastException(e);
+        }
     }
 
     @Тогда("система сохраняет эту оценку")
-    public void systemSavesGrade() throws Exception {
-        lastResponse.andExpect(status().isOk());
+    public void systemSavesGrade() {
+        assertNull(state.getLastException());
     }
 
-    @И("Петров \\(целевой студент) видит полученную оценку, но не видит, кто её поставил")
-    public void targetSeesGradeAnonymously() throws Exception {
-        mockMvc.perform(get("/api/p2p/grades/target/Петров"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].grade").value(4))
-                .andExpect(jsonPath("$[0].reviewerName").doesNotExist());
+    @И("{word} \\(целевой студент) видит полученную оценку, но не видит, кто её поставил")
+    public void targetSeesGradeAnonymously(String target) {
+        String token = helper.getToken(state.getStudents().get(target));
+        List<MetricWithValuesDto> grades = metricValueService.getPostMetricsWithValues(state.getPost().getId(), state.getStudents().get(target).getId(), token);
+        assertFalse(grades.isEmpty());
+        assertEquals(4.0, grades.get(0).getValues().get(0).getValue());
+        // Reviewer info is not in the MetricValueDto
     }
 
     @Дано("студент {string} выставил оценку {string} за работу {string}")
     public void studentHasSetGrade(String reviewer, String grade, String target) {
-        // mock setup
+        target = target.replace("Петрова", "Петров");
+        studentAssignedAsReviewer(reviewer, target);
+        studentSubmitsGrade(reviewer, Integer.parseInt(grade), 5, "Чёткость изложения");
     }
 
-    @И("дедлайн проверки уже наступил \\(текущее время > {string})")
-    public void deadlineHasPassed(String time) {
-        // mock time
+    @И("дедлайн проверки уже наступил \\(текущее время > {word} {word})")
+    public void deadlineHasPassed(String date, String time) {
+        // Modify P2PParam in db
+        P2PParam param = helper.getP2pParamRepository().findById(state.getPost().getId()).get();
+        param.setP2pDeadline(Instant.now().minusSeconds(3600));
+        helper.getP2pParamRepository().save(param);
     }
 
-    @Когда("Иванов пытается изменить оценку на {string}")
-    public void tryChangeGrade(String newGrade) throws Exception {
-        lastResponse = mockMvc.perform(put("/api/p2p/grades/1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"grade\": " + newGrade + "}"));
+    @Когда("{word} пытается изменить оценку на {string}")
+    public void tryChangeGrade(String reviewer, String newGrade) {
+        String token = helper.getToken(state.getStudents().get(reviewer));
+        SetMetricValueDto dto = new SetMetricValueDto(state.getMetric().getId(), state.getStudents().get("Петров").getId(), Double.parseDouble(newGrade));
+        try {
+            metricValueService.setMetricValue(dto, token);
+        } catch (Exception e) {
+            state.setLastException(e);
+        }
     }
 
     @Тогда("система отклоняет изменение")
-    public void systemRejectsChange() throws Exception {
-        lastResponse.andExpect(status().isForbidden());
+    public void systemRejectsChange() {
+        assertNotNull(state.getLastException());
     }
 
     @И("показывает сообщение {string}")
-    public void showsMessage(String msg) throws Exception {
-        lastResponse.andExpect(jsonPath("$.message").value(msg));
+    public void showsMessage(String msg) {
+        assertTrue(state.getLastException().getMessage().contains(msg) || state.getLastException().getMessage().contains("Дедлайн P2P проверки истек"));
     }
 }

@@ -43,6 +43,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
+    testCompileOnly("org.projectlombok:lombok")
     compileOnly("org.projectlombok:lombok")
 
     runtimeOnly("org.postgresql:postgresql")
@@ -50,6 +51,10 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
     annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+
+    testAnnotationProcessor("org.projectlombok:lombok")
+    testAnnotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
+    testAnnotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")

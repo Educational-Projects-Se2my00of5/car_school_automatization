@@ -44,7 +44,7 @@ public class MetricValue {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
+    @Column(name = "metric_value", nullable = false)
     private Double value;
 
     @CreationTimestamp

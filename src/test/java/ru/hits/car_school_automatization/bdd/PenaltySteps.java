@@ -45,13 +45,13 @@ public class PenaltySteps {
                 .content("{\"student\": \"" + student + "\", \"time\": \"" + time + "\"}"));
     }
 
-    @Тогда("система определяет количество шагов = {int} \\({int} минут \\/ {int} минут с округлением вверх)")
-    public void systemDeterminesSteps(int steps, int totalMinutes, int stepMinutes) {
+    @Тогда("система определяет количество шагов = {int}")
+    public void systemDeterminesSteps(int steps) {
         // Validation in the next step
     }
 
-    @И("уменьшает максимальный балл на {int} * {double} = {double}")
-    public void reducesMaxGrade(int steps, double amount, double totalPenalty) {
+    @И("уменьшает максимальный балл на {double}")
+    public void reducesMaxGrade(double totalPenalty) {
     }
 
     @И("итоговый максимальный балл для этого студента становится {double}")
@@ -79,12 +79,12 @@ public class PenaltySteps {
     public void studentSubmitsDaysLate(int days) {
     }
 
-    @Тогда("штрафной коэффициент = {double} * {double} = {double}")
-    public void penaltyCoefficientIs(double a, double b, double c) {
+    @Тогда("штрафной коэффициент = {double}")
+    public void penaltyCoefficientIs(double c) {
     }
 
-    @И("итоговая оценка = {double} * {double} = {double} \\(с округлением до сотых)")
-    public void finalGradeIsCalculated(double original, double coef, double finalGrade) throws Exception {
+    @И("итоговая оценка = {double}")
+    public void finalGradeIsCalculated(double finalGrade) throws Exception {
         mockMvc.perform(get("/api/grades/1/student"))
                 .andExpect(jsonPath("$.finalGrade").value(finalGrade));
     }
