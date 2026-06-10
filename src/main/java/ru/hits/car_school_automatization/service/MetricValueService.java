@@ -353,6 +353,42 @@ public class MetricValueService {
         metricChangeRepository.save(change);
     }
 
+    public void removeOverride(UUID metricId, Long studentId, String authHeader) {
+        User requester = getUserFromHeader(authHeader);
+        if (!RoleUtils.isTeacherOrManager(requester)) {
+            throw new ForbiddenException("Только преподаватель может отменить оверрайд");
+        }
+
+        MetricValue metricValue = metricValueRepository.findByMetricIdAndUserId(metricId, studentId)
+                .orElseThrow(() -> new NotFoundException("Оценка не найдена"));
+
+        List<MetricChange> changes = metricChangeRepository.findByMetricValueIdOrderByEditedAtDesc(metricValue.getId());
+        Double previousValue = null;
+
+        for (MetricChange change : changes) {
+            User editor = userRepository.findById(change.getEditorId()).orElse(null);
+            if (editor == null || !RoleUtils.isTeacherOrManager(editor)) {
+                previousValue = change.getEditValue();
+                break;
+            }
+        }
+
+        if (previousValue != null) {
+            metricValue.setValue(previousValue);
+            MetricValue saved = metricValueRepository.save(metricValue);
+            
+            MetricChange change = MetricChange.builder()
+                .metricValueId(saved.getId())
+                .editorId(requester.getId())
+                .editValue(previousValue)
+                .build();
+            metricChangeRepository.save(change);
+        } else {
+            metricChangeRepository.deleteAll(changes);
+            metricValueRepository.delete(metricValue);
+        }
+    }
+
     private List<MetricWithValuesDto> toMetricsWithValues(
             List<Metric> metrics,
             User requester,

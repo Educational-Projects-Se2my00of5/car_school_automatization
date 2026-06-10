@@ -115,9 +115,13 @@ public class P2PAnonymousSteps {
     public void deadlineNotPassed() {
     }
 
-    @Когда("Иванов выставляет оценку {int} из {int} по критерию {string}")
-    public void studentSubmitsGrade(int grade, int maxGrade, String criteria) {
-        String token = helper.getToken(state.getStudents().get("Иванов"));
+    @Когда("{word} выставляет оценку {int} из {int} по критерию {string}")
+    public void studentSubmitsGrade(String reviewer, int grade, int maxGrade, String criteria) {
+        assertNotNull(state.getMetric(), "Metric is null!");
+        assertNotNull(state.getStudents().get(reviewer), reviewer + " is null!");
+        assertNotNull(state.getStudents().get("Петров"), "Петров is null!");
+        
+        String token = helper.getToken(state.getStudents().get(reviewer));
         SetMetricValueDto dto = new SetMetricValueDto(state.getMetric().getId(), state.getStudents().get("Петров").getId(), (double) grade);
         try {
             metricValueService.setMetricValue(dto, token);
@@ -131,10 +135,10 @@ public class P2PAnonymousSteps {
         assertNull(state.getLastException());
     }
 
-    @И("Петров \\(целевой студент) видит полученную оценку, но не видит, кто её поставил")
-    public void targetSeesGradeAnonymously() {
-        String token = helper.getToken(state.getStudents().get("Петров"));
-        List<MetricWithValuesDto> grades = metricValueService.getPostMetricsWithValues(state.getPost().getId(), state.getStudents().get("Петров").getId(), token);
+    @И("{word} \\(целевой студент) видит полученную оценку, но не видит, кто её поставил")
+    public void targetSeesGradeAnonymously(String target) {
+        String token = helper.getToken(state.getStudents().get(target));
+        List<MetricWithValuesDto> grades = metricValueService.getPostMetricsWithValues(state.getPost().getId(), state.getStudents().get(target).getId(), token);
         assertFalse(grades.isEmpty());
         assertEquals(4.0, grades.get(0).getValues().get(0).getValue());
         // Reviewer info is not in the MetricValueDto
@@ -142,21 +146,22 @@ public class P2PAnonymousSteps {
 
     @Дано("студент {string} выставил оценку {string} за работу {string}")
     public void studentHasSetGrade(String reviewer, String grade, String target) {
+        target = target.replace("Петрова", "Петров");
         studentAssignedAsReviewer(reviewer, target);
-        studentSubmitsGrade(Integer.parseInt(grade), 5, "Чёткость изложения");
+        studentSubmitsGrade(reviewer, Integer.parseInt(grade), 5, "Чёткость изложения");
     }
 
-    @И("дедлайн проверки уже наступил \\(текущее время > {string})")
-    public void deadlineHasPassed(String time) {
+    @И("дедлайн проверки уже наступил \\(текущее время > {word} {word})")
+    public void deadlineHasPassed(String date, String time) {
         // Modify P2PParam in db
         P2PParam param = helper.getP2pParamRepository().findById(state.getPost().getId()).get();
         param.setP2pDeadline(Instant.now().minusSeconds(3600));
         helper.getP2pParamRepository().save(param);
     }
 
-    @Когда("Иванов пытается изменить оценку на {string}")
-    public void tryChangeGrade(String newGrade) {
-        String token = helper.getToken(state.getStudents().get("Иванов"));
+    @Когда("{word} пытается изменить оценку на {string}")
+    public void tryChangeGrade(String reviewer, String newGrade) {
+        String token = helper.getToken(state.getStudents().get(reviewer));
         SetMetricValueDto dto = new SetMetricValueDto(state.getMetric().getId(), state.getStudents().get("Петров").getId(), Double.parseDouble(newGrade));
         try {
             metricValueService.setMetricValue(dto, token);

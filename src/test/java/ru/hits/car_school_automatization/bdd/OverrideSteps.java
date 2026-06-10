@@ -104,6 +104,13 @@ public class OverrideSteps {
 
     @И("на UI отображается пометка {string}")
     public void uiShowsNote(String note) {
+        String token = helper.getToken(state.getTeacher());
+        List<MetricValueHistoryDto> history = metricValueService.getMetricValueHistory(
+                state.getMetric().getId(),
+                state.getStudents().get("Козлова").getId(),
+                token
+        );
+        assertEquals(state.getTeacher().getId(), history.get(0).getEditorId());
     }
 
     @Дано("для студента {string} установлен оверрайд {double}")
@@ -114,20 +121,17 @@ public class OverrideSteps {
 
     @Когда("преподаватель выбирает {string}")
     public void teacherRevertsOverride(String action) {
-        // The requirements say "teacher removes override", but we don't have a specific "remove override" endpoint.
-        // We just let the teacher set it back to 7.5, or delete the metricValue? We didn't build a DELETE override endpoint yet.
-        // I will simulate teacher putting the grade back manually or we just ignore this step for now as UI logic.
         String token = helper.getToken(state.getTeacher());
-        SetMetricValueDto dto = new SetMetricValueDto(
+        metricValueService.removeOverride(
                 state.getMetric().getId(),
                 state.getStudents().get("Козлова").getId(),
-                7.5
+                token
         );
-        metricValueService.setMetricValue(dto, token);
     }
 
     @Тогда("система удаляет оверрайд")
     public void systemRemovesOverride() {
+        // Handled by the method call above
     }
 
     @И("оценка становится {double}")
@@ -143,5 +147,15 @@ public class OverrideSteps {
 
     @И("в журнал добавляется запись об отмене оверрайда")
     public void auditLogOverrideRemoved() {
+        String token = helper.getToken(state.getTeacher());
+        List<MetricValueHistoryDto> history = metricValueService.getMetricValueHistory(
+                state.getMetric().getId(),
+                state.getStudents().get("Козлова").getId(),
+                token
+        );
+        // Latest change is reverting to previous non-teacher value
+        // The editor should be the teacher who reverted it
+        assertEquals(state.getTeacher().getId(), history.get(0).getEditorId());
+        assertEquals(7.5, history.get(0).getValue());
     }
 }
