@@ -34,7 +34,7 @@ public class TeamP2PReviewGrade {
     @Column(name = "metric_id", nullable = false)
     private UUID metricId;
 
-    @Column(nullable = false)
+    @Column(name = "grade_value", nullable = false)
     private Double value;
 
     @CreationTimestamp
