@@ -94,7 +94,7 @@ public class P2PAnonymousSteps {
         ReviewTasksDto tasks = p2pService.getReviewTasks();
         assertFalse(tasks.getPersonal().isEmpty());
         PersonalReviewTaskDto task = tasks.getPersonal().get(0);
-        assertNull(task.getOwnerId()); // Hidden due to P2PVisibility.ANONYMOUS
+        assertNull(task.getOwner()); // Hidden due to P2PVisibility.ANONYMOUS
     }
 
     @Дано("студент {string} назначен рецензентом работы {string}")

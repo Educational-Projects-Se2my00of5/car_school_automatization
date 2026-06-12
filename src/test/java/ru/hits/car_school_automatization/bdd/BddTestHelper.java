@@ -100,6 +100,8 @@ public class BddTestHelper {
                 .type(PostType.TASK)
                 .createdAt(LocalDateTime.now())
                 .isP2pEnabled(true)
+                .isMetricsVisibleToStudents(true)
+                .isMetricValuesVisibleToStudents(true)
                 .build();
         post = postRepository.save(post);
 
@@ -125,6 +127,8 @@ public class BddTestHelper {
                 .isCanRedistribute(false)
                 .qualifiedMin(5)
                 .isP2pEnabled(true)
+                .isMetricsVisibleToStudents(true)
+                .isMetricValuesVisibleToStudents(true)
                 .startAt(Instant.now())
                 .votingDeadline(Instant.now().plusSeconds(86400))
                 .build();

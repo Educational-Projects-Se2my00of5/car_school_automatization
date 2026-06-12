@@ -47,6 +47,7 @@ public class P2PTeamSteps {
             TaskSolution ts = new TaskSolution();
             ts.setTeamId(team.getId());
             ts.setTaskId(state.getTask().getId());
+            ts.setStudentId(captain.getId());
             ts.setIsSelected(true);
             ts = helper.getTaskSolutionRepository().save(ts);
             state.getTaskSolutions().put(name, ts);
@@ -90,6 +91,7 @@ public class P2PTeamSteps {
         TaskSolution ts2 = new TaskSolution();
         ts2.setTeamId(t2.getId());
         ts2.setTaskId(state.getTask().getId());
+        ts2.setStudentId(memberTarget.getId());
         ts2.setIsSelected(true);
         ts2 = helper.getTaskSolutionRepository().save(ts2);
 
@@ -111,7 +113,7 @@ public class P2PTeamSteps {
     @Когда("Соколов выставляет оценку {string} за решение")
     public void captainSetsGrade(String gradeStr) {
         String token = helper.getToken(state.getStudents().get("Соколов"));
-        SetTeamMetricValueDto dto = new SetTeamMetricValueDto(state.getMetric().getId(), state.getTeams().get("Бета").getId(), Double.parseDouble(gradeStr));
+        SetTeamMetricValueDto dto = new SetTeamMetricValueDto(state.getMetric().getId(), state.getTeams().get("Бета").getId(), Double.parseDouble(gradeStr.split(" ")[0].replace(",", ".")));
         try {
             metricValueService.setTeamMetricValue(dto, token);
         } catch (Exception e) {
@@ -132,7 +134,9 @@ public class P2PTeamSteps {
     public void otherMembersCannotChangeGrade(String team) {
         User otherMember = helper.createStudent("НеСоколов");
         Team alpha = state.getTeams().get(team);
-        alpha.getUsers().add(otherMember);
+        java.util.Set<User> users = new java.util.HashSet<>(alpha.getUsers());
+        users.add(otherMember);
+        alpha.setUsers(users);
         helper.getTeamRepository().save(alpha);
 
         String token = helper.getToken(otherMember);
@@ -150,11 +154,14 @@ public class P2PTeamSteps {
     public void teamHasNoCaptain(String team) {
         teamTaskCreated("Задание 2");
         state.getTeams().put("Гамма", helper.createTeam("Гамма", state.getTask(), new ArrayList<>(), null));
-        state.getTeams().put("Дельта", helper.createTeam("Дельта", state.getTask(), List.of(helper.createStudent("ТаргетД")), null));
+        User targetUser = helper.createStudent("ТаргетД");
+        state.getStudents().put("ТаргетД", targetUser);
+        state.getTeams().put("Дельта", helper.createTeam("Дельта", state.getTask(), List.of(targetUser), null));
 
         TaskSolution ts2 = new TaskSolution();
         ts2.setTeamId(state.getTeams().get("Дельта").getId());
         ts2.setTaskId(state.getTask().getId());
+        ts2.setStudentId(targetUser.getId());
         ts2.setIsSelected(true);
         ts2 = helper.getTaskSolutionRepository().save(ts2);
 
@@ -178,7 +185,9 @@ public class P2PTeamSteps {
         state.getStudents().put("Студент3", s3);
 
         Team gamma = state.getTeams().get(team);
-        gamma.getUsers().addAll(List.of(s1, s2, s3));
+        java.util.Set<User> users = new java.util.HashSet<>(gamma.getUsers());
+        users.addAll(List.of(s1, s2, s3));
+        gamma.setUsers(users);
         helper.getTeamRepository().save(gamma);
     }
 
@@ -186,14 +195,14 @@ public class P2PTeamSteps {
     public void studentsSetGrades(String g1, String g2, String g3) {
         for (int i = 1; i <= 3; i++) {
             String token = helper.getToken(state.getStudents().get("Студент" + i));
-            double grade = Double.parseDouble(i == 1 ? g1 : (i == 2 ? g2 : g3));
+            double grade = Double.parseDouble((i == 1 ? g1 : (i == 2 ? g2 : g3)).replace(",", "."));
             SetTeamMetricValueDto dto = new SetTeamMetricValueDto(state.getMetric().getId(), state.getTeams().get("Дельта").getId(), grade);
             metricValueService.setTeamMetricValue(dto, token);
         }
     }
 
-    @Тогда("система вычисляет среднее = \\({int}+{int}+{int})\\/{int} = {double}")
-    public void systemCalculatesAverage(int g1, int g2, int g3, int count, double avg) {
+    @Тогда("система вычисляет среднее = {double}")
+    public void systemCalculatesAverage(double avg) {
         // Asserted in next step
     }
 
