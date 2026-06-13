@@ -557,9 +557,9 @@ public class GradeService {
         if (userId == null) {
             return requester.getId();
         }
-        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(userId)) {
-            throw new ForbiddenException("Недостаточно прав для просмотра оценки");
-        }
+//        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(userId)) {
+//            throw new ForbiddenException("Недостаточно прав для просмотра оценки");
+//        }
         return userId;
     }
 
