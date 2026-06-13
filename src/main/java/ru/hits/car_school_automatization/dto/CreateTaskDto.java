@@ -56,6 +56,7 @@ public class CreateTaskDto {
     @NotNull
     private Boolean isCanRedistribute;
 
+    @NotNull
     private Boolean isP2pEnabled;
 
     private P2PParamDto p2pParam;

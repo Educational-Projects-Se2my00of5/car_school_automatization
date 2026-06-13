@@ -91,6 +91,8 @@ public class TaskService {
             task.setIsMetricValuesVisibleToStudents(false);
         }
 
+        task.setIsP2pEnabled(dto.getIsP2pEnabled());
+
         Task savedTask = taskRepository.save(task);
         List<Team> teams = teamFormationService.formByTeamType(savedTask, List.copyOf(channel.getUsers()), dto);
         if (!teams.isEmpty()) {
