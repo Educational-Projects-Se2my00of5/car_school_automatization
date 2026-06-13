@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.hits.car_school_automatization.entity.Post;
 import ru.hits.car_school_automatization.entity.Task;
 import ru.hits.car_school_automatization.entity.Team;
+import ru.hits.car_school_automatization.repository.P2PPairPersonalRepository;
+import ru.hits.car_school_automatization.repository.P2PPairTeamRepository;
 import ru.hits.car_school_automatization.repository.PostRepository;
 import ru.hits.car_school_automatization.repository.TaskRepository;
 import ru.hits.car_school_automatization.service.P2PService;
@@ -29,6 +31,8 @@ public class TaskDeadlineScheduler {
     private final PostRepository postRepository;
     private final TaskSolutionService taskSolutionService;
     private final P2PService p2pService;
+    private final P2PPairPersonalRepository p2PPairPersonalRepository;
+    private final P2PPairTeamRepository p2PPairTeamRepository;
 
     @Scheduled(cron = "0 * * * * *")
     @Transactional
@@ -52,7 +56,7 @@ public class TaskDeadlineScheduler {
                 }
             }
 
-            if (Boolean.TRUE.equals(task.getIsP2pEnabled())) {
+            if (Boolean.TRUE.equals(task.getIsP2pEnabled()) && p2PPairTeamRepository.findByTaskId(task.getId()).isEmpty()) {
                 try {
                     p2pService.generateP2PForTask(task.getId());
                 } catch (Exception e) {
@@ -63,7 +67,7 @@ public class TaskDeadlineScheduler {
 
         List<Post> posts = postRepository.findByDeadlineBefore(LocalDateTime.now());
         for (Post post : posts) {
-            if (Boolean.TRUE.equals(post.getIsP2pEnabled())) {
+            if (Boolean.TRUE.equals(post.getIsP2pEnabled()) && p2PPairPersonalRepository.findByPostId(post.getId()).isEmpty()) {
                 try {
                     p2pService.generateP2PForPost(post.getId());
                 } catch (Exception e) {
