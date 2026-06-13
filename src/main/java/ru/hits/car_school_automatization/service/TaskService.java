@@ -2,6 +2,7 @@ package ru.hits.car_school_automatization.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.CreateTaskDto;
@@ -40,6 +41,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -56,6 +58,7 @@ public class TaskService {
     private final P2PParamRepository p2pParamRepository;
 
     public TaskDto createTask(CreateTaskDto dto, UUID channelId, String authHeader) {
+        log.info("start create");
         Channel channel = channelRepository.findById(channelId)
                 .orElseThrow(() -> new NotFoundException("Предмет с id " + channelId + " не найден"));
 
@@ -294,6 +297,7 @@ public class TaskService {
         User requester = userRepository.findById(requesterId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + requesterId + " не найден"));
 
+        log.info(requester.getRole().toString());
         if (!RoleUtils.isTeacher(requester)) {
             throw new ForbiddenException("Только преподаватель может управлять заданиями");
         }

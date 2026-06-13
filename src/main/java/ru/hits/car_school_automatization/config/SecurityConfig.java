@@ -51,69 +51,66 @@ public class SecurityConfig {
 
                         .requestMatchers("/auth/**").permitAll()
 
-                        .requestMatchers("/channel").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/channel/**").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.PATCH, "/channel/**").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.GET, "/channel/**").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.DELETE, "/channel/**").hasRole("MANAGER")
+//                        .requestMatchers("/channel/**").authenticated()
+//
+//
+//                        .requestMatchers("/posts").authenticated()
+//                        .requestMatchers("/api/posts/*/visibility").hasAnyRole("TEACHER", "MANAGER")
+//                        .requestMatchers(HttpMethod.POST, "/channel/**").hasAnyRole("TEACHER", "MANAGER")
+//                        .requestMatchers(HttpMethod.GET, "/channel/**").authenticated()
+//                        .requestMatchers(HttpMethod.DELETE, "/channel/**").hasAnyRole("TEACHER", "MANAGER")
+//
+//                        .requestMatchers(HttpMethod.GET, "/api/teams/**").authenticated()
+//                        .requestMatchers(HttpMethod.POST, "/api/teams").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.PATCH, "/api/teams/**").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.POST, "/api/teams/*/members/*").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.DELETE, "/api/teams/*/members/*").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.DELETE, "/api/teams/*").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.POST, "/api/teams/*/join").hasRole("STUDENT")
+//                        .requestMatchers(HttpMethod.DELETE, "/api/teams/*/leave").hasRole("STUDENT")
+//
+//                        .requestMatchers(HttpMethod.GET, "/api/tasks/**").authenticated()
+//                        .requestMatchers(HttpMethod.POST, "/api/tasks").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.PATCH, "/api/tasks/**").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.POST, "/api/tasks/*/documents").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.DELETE, "/api/tasks/*/documents").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.DELETE, "/api/tasks/*").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.POST, "/api/tasks/*/copy").hasRole("TEACHER")
+//
+//                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/**").authenticated()
+//                        .requestMatchers(HttpMethod.POST, "/api/task-solutions").hasRole("STUDENT")
+//                        .requestMatchers(HttpMethod.PATCH, "/api/task-solutions/*").hasRole("STUDENT")
+//                        .requestMatchers(HttpMethod.DELETE, "/api/task-solutions/*").authenticated()
+//
+//                        .requestMatchers(HttpMethod.POST, "/api/teams/*/invite/**").hasRole("STUDENT")
+//                        .requestMatchers(HttpMethod.POST, "/api/teams/invites/*/accept").hasRole("STUDENT")
+//                        .requestMatchers(HttpMethod.DELETE, "/api/teams/invites/**").hasRole("STUDENT")
+//                        .requestMatchers(HttpMethod.GET, "/api/teams/invites/my").hasRole("STUDENT")
+//
+//                        .requestMatchers(HttpMethod.POST, "/api/teams/choose-captain").authenticated()
+//                        .requestMatchers(HttpMethod.POST, "/api/teams/*/init-captain-voting").hasRole("STUDENT")
+//                        .requestMatchers(HttpMethod.GET, "/api/teams/*/captain").authenticated()
+//                        .requestMatchers(HttpMethod.GET, "/api/teams/*/captain-votes").authenticated()
+//
+//                        .requestMatchers(HttpMethod.POST, "/api/task-solutions/vote").hasRole("STUDENT")
+//                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/vote/my/**").hasRole("STUDENT")
+//                        .requestMatchers(HttpMethod.DELETE, "/api/task-solutions/vote/**").hasRole("STUDENT")
+//                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/voting-results").authenticated()
+//
+//                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solution").authenticated()
+//                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solutions").hasRole("TEACHER")
+//
+//                        .requestMatchers(HttpMethod.POST, "/api/metrics").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.DELETE, "/api/metrics/**").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.PUT, "/api/metrics/values/**").hasRole("TEACHER")
+//                        .requestMatchers(HttpMethod.GET, "/api/metrics/**").authenticated()
+//
+//                        .requestMatchers(HttpMethod.GET, "/api/controls/**").authenticated()
+//                        .requestMatchers(HttpMethod.PATCH, "/api/controls/**").hasRole("TEACHER")
+//
+//                        .requestMatchers(HttpMethod.GET, "/api/grades/**").authenticated()
 
-                        .requestMatchers("/posts").authenticated()
-                        .requestMatchers("/api/posts/*/visibility").hasAnyRole("TEACHER", "MANAGER")
-                        .requestMatchers(HttpMethod.POST, "/channel/**").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.GET, "/channel/**").hasAnyRole("MANAGER", "STUDENT")
-                        .requestMatchers(HttpMethod.DELETE, "/channel/**").hasRole("MANAGER")
-
-                        .requestMatchers(HttpMethod.GET, "/api/teams/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/teams").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/teams/**").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.POST, "/api/teams/*/members/*").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/teams/*/members/*").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/teams/*").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.POST, "/api/teams/*/join").hasRole("STUDENT")
-                        .requestMatchers(HttpMethod.DELETE, "/api/teams/*/leave").hasRole("STUDENT")
-
-                        .requestMatchers(HttpMethod.GET, "/api/tasks/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/tasks").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/tasks/**").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.POST, "/api/tasks/*/documents").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/tasks/*/documents").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/tasks/*").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.POST, "/api/tasks/*/copy").hasRole("TEACHER")
-
-                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/task-solutions").hasRole("STUDENT")
-                        .requestMatchers(HttpMethod.PATCH, "/api/task-solutions/*").hasRole("STUDENT")
-                        .requestMatchers(HttpMethod.DELETE, "/api/task-solutions/*").authenticated()
-
-                        .requestMatchers(HttpMethod.POST, "/api/teams/*/invite/**").hasRole("STUDENT")
-                        .requestMatchers(HttpMethod.POST, "/api/teams/invites/*/accept").hasRole("STUDENT")
-                        .requestMatchers(HttpMethod.DELETE, "/api/teams/invites/**").hasRole("STUDENT")
-                        .requestMatchers(HttpMethod.GET, "/api/teams/invites/my").hasRole("STUDENT")
-
-                        .requestMatchers(HttpMethod.POST, "/api/teams/choose-captain").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/teams/*/init-captain-voting").hasRole("STUDENT")
-                        .requestMatchers(HttpMethod.GET, "/api/teams/*/captain").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/teams/*/captain-votes").authenticated()
-
-                        .requestMatchers(HttpMethod.POST, "/api/task-solutions/vote").hasRole("STUDENT")
-                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/vote/my/**").hasRole("STUDENT")
-                        .requestMatchers(HttpMethod.DELETE, "/api/task-solutions/vote/**").hasRole("STUDENT")
-                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/voting-results").authenticated()
-
-                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solution").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/task-solutions/*/selected-solutions").hasRole("TEACHER")
-
-                        .requestMatchers(HttpMethod.POST, "/api/metrics").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/metrics/**").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.PUT, "/api/metrics/values/**").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.GET, "/api/metrics/**").authenticated()
-
-                        .requestMatchers(HttpMethod.GET, "/api/controls/**").authenticated()
-                        .requestMatchers(HttpMethod.PATCH, "/api/controls/**").hasRole("TEACHER")
-
-                        .requestMatchers(HttpMethod.GET, "/api/grades/**").authenticated()
-
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, BasicAuthenticationFilter.class);
 

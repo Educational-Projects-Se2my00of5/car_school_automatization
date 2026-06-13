@@ -51,10 +51,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String passwordHash;
 
-    @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "role")
     private List<Role> role;
 
     @Column(nullable = false)

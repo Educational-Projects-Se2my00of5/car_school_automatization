@@ -10,7 +10,7 @@ public final class RoleUtils {
     }
 
     public static boolean isTeacher(User user) {
-        return user.getRole().contains(Role.TEACHER);
+        return isTeacherOrManager(user);
     }
 
     public static boolean isTeacherOrManager(User user) {
