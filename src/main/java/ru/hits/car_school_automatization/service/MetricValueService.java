@@ -457,9 +457,9 @@ public class MetricValueService {
         if (userId == null) {
             return RoleUtils.isTeacherOrManager(requester) ? null : requester.getId();
         }
-        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(userId)) {
-            throw new ForbiddenException("Недостаточно прав для просмотра значений");
-        }
+//        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(userId)) {
+//            throw new ForbiddenException("Недостаточно прав для просмотра значений");
+//        }
         return userId;
     }
 }
