@@ -3,11 +3,7 @@ package ru.hits.car_school_automatization.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.hits.car_school_automatization.dto.MetricValueDto;
-import ru.hits.car_school_automatization.dto.MetricValueHistoryDto;
-import ru.hits.car_school_automatization.dto.MetricWithValuesDto;
-import ru.hits.car_school_automatization.dto.SetMetricValueDto;
-import ru.hits.car_school_automatization.dto.SetTeamMetricValueDto;
+import ru.hits.car_school_automatization.dto.*;
 import ru.hits.car_school_automatization.entity.*;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
@@ -17,11 +13,7 @@ import ru.hits.car_school_automatization.mapper.MetricValueMapper;
 import ru.hits.car_school_automatization.repository.*;
 import ru.hits.car_school_automatization.util.RoleUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -376,12 +368,12 @@ public class MetricValueService {
         if (previousValue != null) {
             metricValue.setValue(previousValue);
             MetricValue saved = metricValueRepository.save(metricValue);
-            
+
             MetricChange change = MetricChange.builder()
-                .metricValueId(saved.getId())
-                .editorId(requester.getId())
-                .editValue(previousValue)
-                .build();
+                    .metricValueId(saved.getId())
+                    .editorId(requester.getId())
+                    .editValue(previousValue)
+                    .build();
             metricChangeRepository.save(change);
         } else {
             metricChangeRepository.deleteAll(changes);

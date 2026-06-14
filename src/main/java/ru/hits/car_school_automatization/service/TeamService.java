@@ -4,36 +4,21 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.hits.car_school_automatization.dto.CreateTeamDto;
-import ru.hits.car_school_automatization.dto.TeamDto;
-import ru.hits.car_school_automatization.dto.UpdateTeamDto;
-import ru.hits.car_school_automatization.entity.*;
 import ru.hits.car_school_automatization.dto.*;
-import ru.hits.car_school_automatization.entity.CaptainVote;
-import ru.hits.car_school_automatization.entity.Task;
-import ru.hits.car_school_automatization.entity.Team;
-import ru.hits.car_school_automatization.entity.User;
+import ru.hits.car_school_automatization.entity.*;
 import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.enums.TeamType;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.mapper.TeamMapper;
-import ru.hits.car_school_automatization.mapper.UserMapperKt;
-import ru.hits.car_school_automatization.repository.InviteRepository;
 import ru.hits.car_school_automatization.mapper.UserMapper;
-import ru.hits.car_school_automatization.repository.CaptainVoteRepository;
-import ru.hits.car_school_automatization.repository.TaskRepository;
-import ru.hits.car_school_automatization.repository.TeamRepository;
-import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.mapper.UserMapperKt;
+import ru.hits.car_school_automatization.repository.*;
 import ru.hits.car_school_automatization.util.RoleUtils;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service

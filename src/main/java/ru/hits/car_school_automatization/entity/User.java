@@ -1,21 +1,16 @@
 package ru.hits.car_school_automatization.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import ru.hits.car_school_automatization.enums.Role;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-
-import java.util.Collection;
 
 /**
  * Сущность пользователя системы автошколы

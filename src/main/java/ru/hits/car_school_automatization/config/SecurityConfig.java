@@ -34,22 +34,22 @@ public class SecurityConfig {
                 }))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/api-docs/**"
-                        ).permitAll()
-                        // эндпоинты /users
-                        .requestMatchers(HttpMethod.POST, "/users").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.PUT, "/users/**").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.PATCH, "/users/*/deactivate", "/users/*/activate").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.POST, "/users/*/add-role", "/users/*/remove-role").hasRole("MANAGER")
-                        .requestMatchers("/users/change-password", "/users/profile").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/users", "/users/**").hasAnyRole("TEACHER", "MANAGER")
+                                .requestMatchers(
+                                        "/swagger-ui/**",
+                                        "/swagger-ui.html",
+                                        "/v3/api-docs/**",
+                                        "/api-docs/**"
+                                ).permitAll()
+                                // эндпоинты /users
+                                .requestMatchers(HttpMethod.POST, "/users").hasRole("MANAGER")
+                                .requestMatchers(HttpMethod.PUT, "/users/**").hasRole("MANAGER")
+                                .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("MANAGER")
+                                .requestMatchers(HttpMethod.PATCH, "/users/*/deactivate", "/users/*/activate").hasRole("MANAGER")
+                                .requestMatchers(HttpMethod.POST, "/users/*/add-role", "/users/*/remove-role").hasRole("MANAGER")
+                                .requestMatchers("/users/change-password", "/users/profile").authenticated()
+                                .requestMatchers(HttpMethod.GET, "/users", "/users/**").hasAnyRole("TEACHER", "MANAGER")
 
-                        .requestMatchers("/auth/**").permitAll()
+                                .requestMatchers("/auth/**").permitAll()
 
 //                        .requestMatchers("/channel/**").authenticated()
 //
@@ -110,7 +110,7 @@ public class SecurityConfig {
 //
 //                        .requestMatchers(HttpMethod.GET, "/api/grades/**").authenticated()
 
-                        .anyRequest().authenticated()
+                                .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, BasicAuthenticationFilter.class);
 

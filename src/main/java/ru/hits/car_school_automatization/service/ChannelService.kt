@@ -17,7 +17,6 @@ import ru.hits.car_school_automatization.repository.UserRepository
 import ru.hits.car_school_automatization.validator.validateChannelName
 import ru.hits.car_school_automatization.validator.validateImage
 import java.util.*
-import kotlin.collections.all
 
 @Service
 open class ChannelService(

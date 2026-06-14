@@ -8,7 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import ru.hits.car_school_automatization.dto.*;
+import ru.hits.car_school_automatization.dto.SolutionDto;
+import ru.hits.car_school_automatization.dto.SubmitSolutionDto;
+import ru.hits.car_school_automatization.dto.TaskWithSolutionDto;
+import ru.hits.car_school_automatization.dto.UpdateSolutionDto;
 import ru.hits.car_school_automatization.service.SolutionService;
 
 import java.util.List;

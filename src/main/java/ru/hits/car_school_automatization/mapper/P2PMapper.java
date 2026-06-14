@@ -4,8 +4,13 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.hits.car_school_automatization.dto.*;
-import ru.hits.car_school_automatization.entity.*;
-import ru.hits.car_school_automatization.repository.*;
+import ru.hits.car_school_automatization.entity.P2PPairPersonal;
+import ru.hits.car_school_automatization.entity.P2PPairTeam;
+import ru.hits.car_school_automatization.entity.P2PParam;
+import ru.hits.car_school_automatization.repository.PostRepository;
+import ru.hits.car_school_automatization.repository.TaskRepository;
+import ru.hits.car_school_automatization.repository.TeamRepository;
+import ru.hits.car_school_automatization.repository.UserRepository;
 
 @Mapper(componentModel = "spring")
 public abstract class P2PMapper {
@@ -77,8 +82,8 @@ public abstract class P2PMapper {
             dto.setIsMetricValuesVisibleToStudents(p.getIsMetricValuesVisibleToStudents());
             dto.setIsP2pEnabled(p.getIsP2pEnabled());
             if (p.getAuthorId() != null) {
-                 userRepository.findById(p.getAuthorId()).ifPresent(author -> 
-                     dto.setAuthorName(author.getFirstName() + " " + author.getLastName()));
+                userRepository.findById(p.getAuthorId()).ifPresent(author ->
+                        dto.setAuthorName(author.getFirstName() + " " + author.getLastName()));
             }
             return dto;
         }).orElse(null);

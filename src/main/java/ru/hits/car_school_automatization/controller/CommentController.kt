@@ -12,7 +12,7 @@ import ru.hits.car_school_automatization.exception.BadRequestException
 import ru.hits.car_school_automatization.mapper.UserMapper
 import ru.hits.car_school_automatization.service.CommentService
 import ru.hits.car_school_automatization.service.JwtTokenProvider
-import java.util.UUID
+import java.util.*
 
 @RestController
 @RequestMapping("/comment")

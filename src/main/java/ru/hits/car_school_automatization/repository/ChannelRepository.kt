@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import ru.hits.car_school_automatization.entity.Channel
 import ru.hits.car_school_automatization.entity.User
-import java.util.UUID
+import java.util.*
 
 @Repository
 interface ChannelRepository : JpaRepository<Channel, UUID> {

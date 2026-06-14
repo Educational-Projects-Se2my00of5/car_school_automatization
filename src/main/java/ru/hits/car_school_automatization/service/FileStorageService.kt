@@ -7,7 +7,7 @@ import ru.hits.car_school_automatization.exception.BadRequestException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.UUID
+import java.util.*
 
 @Service
 class FileStorageService(

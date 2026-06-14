@@ -1,22 +1,13 @@
 package ru.hits.car_school_automatization.mapper;
 
-import org.mapstruct.BeanMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
-import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.*;
 import ru.hits.car_school_automatization.dto.TeamDto;
 import ru.hits.car_school_automatization.dto.UpdateTeamDto;
 import ru.hits.car_school_automatization.dto.UserShortDto;
 import ru.hits.car_school_automatization.entity.Team;
 import ru.hits.car_school_automatization.entity.User;
 
-import java.util.Comparator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")

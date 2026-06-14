@@ -1,10 +1,6 @@
 package ru.hits.car_school_automatization.mapper;
 
-import org.mapstruct.BeanMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.*;
 import ru.hits.car_school_automatization.dto.DeadlinePenaltyDto;
 import ru.hits.car_school_automatization.dto.TaskDto;
 import ru.hits.car_school_automatization.dto.UpdateTaskDto;

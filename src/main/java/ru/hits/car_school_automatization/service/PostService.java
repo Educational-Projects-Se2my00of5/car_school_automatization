@@ -6,13 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.hits.car_school_automatization.dto.*;
-import ru.hits.car_school_automatization.entity.Channel;
-import ru.hits.car_school_automatization.entity.DeadlinePenalty;
-import ru.hits.car_school_automatization.entity.Post;
-import ru.hits.car_school_automatization.entity.Solution;
-import ru.hits.car_school_automatization.entity.Task;
-import ru.hits.car_school_automatization.entity.User;
-import ru.hits.car_school_automatization.entity.P2PParam;
+import ru.hits.car_school_automatization.entity.*;
 import ru.hits.car_school_automatization.enums.PostType;
 import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
@@ -23,15 +17,10 @@ import ru.hits.car_school_automatization.util.DeadlinePenaltyUtils;
 import ru.hits.car_school_automatization.util.RoleUtils;
 import ru.hits.car_school_automatization.util.TeacherInfoResolver;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j

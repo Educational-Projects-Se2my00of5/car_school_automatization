@@ -3,35 +3,13 @@ package ru.hits.car_school_automatization.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.hits.car_school_automatization.entity.Channel;
-import ru.hits.car_school_automatization.entity.Control;
-import ru.hits.car_school_automatization.entity.DeadlinePenalty;
-import ru.hits.car_school_automatization.entity.Metric;
-import ru.hits.car_school_automatization.entity.MetricValue;
-import ru.hits.car_school_automatization.entity.Post;
-import ru.hits.car_school_automatization.entity.Solution;
-import ru.hits.car_school_automatization.entity.Task;
-import ru.hits.car_school_automatization.entity.TaskSolution;
-import ru.hits.car_school_automatization.entity.Team;
-import ru.hits.car_school_automatization.entity.User;
-import ru.hits.car_school_automatization.enums.DeadlinePenaltyUnit;
-import ru.hits.car_school_automatization.enums.GradeTargetType;
-import ru.hits.car_school_automatization.enums.MetricType;
-import ru.hits.car_school_automatization.enums.PostType;
-import ru.hits.car_school_automatization.enums.Role;
+import ru.hits.car_school_automatization.dto.*;
+import ru.hits.car_school_automatization.entity.*;
+import ru.hits.car_school_automatization.enums.*;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
-import ru.hits.car_school_automatization.repository.ChannelRepository;
-import ru.hits.car_school_automatization.repository.ControlRepository;
-import ru.hits.car_school_automatization.repository.MetricRepository;
-import ru.hits.car_school_automatization.repository.MetricValueRepository;
-import ru.hits.car_school_automatization.repository.PostRepository;
-import ru.hits.car_school_automatization.repository.SolutionRepository;
-import ru.hits.car_school_automatization.repository.TaskRepository;
-import ru.hits.car_school_automatization.repository.TaskSolutionRepository;
-import ru.hits.car_school_automatization.repository.TeamRepository;
-import ru.hits.car_school_automatization.repository.UserRepository;
+import ru.hits.car_school_automatization.repository.*;
 import ru.hits.car_school_automatization.util.RoleUtils;
 
 import java.time.Duration;
@@ -40,12 +18,6 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import ru.hits.car_school_automatization.dto.GradeTableCellDto;
-import ru.hits.car_school_automatization.dto.GradeTableDto;
-import ru.hits.car_school_automatization.dto.GradeTableRowDto;
-import ru.hits.car_school_automatization.dto.GradeTableTargetDto;
-import ru.hits.car_school_automatization.dto.UserGradeDto;
 
 @Service
 @RequiredArgsConstructor

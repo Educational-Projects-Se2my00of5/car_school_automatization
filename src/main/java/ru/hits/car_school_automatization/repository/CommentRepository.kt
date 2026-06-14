@@ -2,7 +2,7 @@ package ru.hits.car_school_automatization.repository
 
 import org.springframework.data.jpa.repository.JpaRepository
 import ru.hits.car_school_automatization.entity.Comment
-import java.util.UUID
+import java.util.*
 
 interface CommentRepository : JpaRepository<Comment, Int> {
 

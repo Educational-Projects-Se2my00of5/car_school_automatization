@@ -11,7 +11,6 @@ import ru.hits.car_school_automatization.entity.Task;
 import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.PostType;
 import ru.hits.car_school_automatization.exception.BadRequestException;
-import ru.hits.car_school_automatization.exception.ForbiddenException;
 import ru.hits.car_school_automatization.exception.NotFoundException;
 import ru.hits.car_school_automatization.mapper.ControlMapper;
 import ru.hits.car_school_automatization.repository.ControlRepository;
