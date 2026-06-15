@@ -40,6 +40,21 @@ public class MetricValueService {
         User requester = getUserFromHeader(authHeader);
         Long targetUserId = resolveTargetUserId(requester, userId);
 
+        // P2P access validation
+        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(targetUserId)) {
+            P2PParam p2pParam = p2pParamRepository.findById(postId).orElse(null);
+            if (p2pParam == null) {
+                throw new ForbiddenException("Нет прав для просмотра чужих оценок");
+            }
+
+            boolean isReviewer = p2pPairPersonalRepository.findByPostId(postId).stream()
+                    .anyMatch(pair -> pair.getReviewerId().equals(requester.getId()) && pair.getOwnerId().equals(targetUserId));
+
+            if (!isReviewer) {
+                throw new ForbiddenException("Вы не назначены проверяющим для этого пользователя");
+            }
+        }
+
         var post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("Пост не найден"));
 
@@ -53,6 +68,35 @@ public class MetricValueService {
     public List<MetricWithValuesDto> getTaskMetricsWithValues(UUID taskId, Long userId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
         Long targetUserId = resolveTargetUserId(requester, userId);
+
+        // P2P access validation
+        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(targetUserId)) {
+            P2PParam p2pParam = p2pParamRepository.findById(taskId).orElse(null);
+            if (p2pParam == null) {
+                throw new ForbiddenException("Нет прав для просмотра чужих оценок");
+            }
+
+            // Find requester's team for this task
+            Team requesterTeam = teamRepository.findByUsers_Id(requester.getId()).stream()
+                    .filter(t -> t.getTask() != null && t.getTask().getId().equals(taskId))
+                    .findFirst()
+                    .orElseThrow(() -> new ForbiddenException("Вы не состоите в команде для этого задания"));
+
+            // Find target user's team for this task
+            User targetUser = userRepository.findById(targetUserId)
+                    .orElseThrow(() -> new NotFoundException("Оцениваемый пользователь не найден"));
+            Team targetUserTeam = teamRepository.findByUsers_Id(targetUser.getId()).stream()
+                    .filter(t -> t.getTask() != null && t.getTask().getId().equals(taskId))
+                    .findFirst()
+                    .orElseThrow(() -> new NotFoundException("Оцениваемый пользователь не состоит в команде для этого задания"));
+
+            boolean isReviewerTeam = p2pPairTeamRepository.findByTaskId(taskId).stream()
+                    .anyMatch(pair -> pair.getReviewerTeamId().equals(requesterTeam.getId()) && pair.getOwnerTeamId().equals(targetUserTeam.getId()));
+
+            if (!isReviewerTeam) {
+                throw new ForbiddenException("Ваша команда не назначена проверяющей для команды этого пользователя");
+            }
+        }
 
         var task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new NotFoundException("Задание не найдено"));

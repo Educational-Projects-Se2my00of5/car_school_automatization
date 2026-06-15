@@ -244,6 +244,10 @@ public class P2PService {
             Solution reviewer = solutions.get(i);
             Solution target = solutions.get((i + 1) % solutions.size());
 
+            if (reviewer.getStudentId().equals(target.getStudentId())) {
+                continue;
+            }
+
             P2PPairPersonal pair = P2PPairPersonal.builder()
                     .postId(postId)
                     .reviewerId(reviewer.getStudentId())
