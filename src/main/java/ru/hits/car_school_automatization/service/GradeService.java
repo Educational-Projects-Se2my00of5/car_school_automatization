@@ -522,16 +522,16 @@ public class GradeService {
         }
 
         long steps = delta / step;
-        return mark - steps * penaltyValue;
+        return Math.max(0.0, mark - steps * penaltyValue);
     }
 
     private Long resolveTargetUserId(User requester, Long userId) {
         if (userId == null) {
             return requester.getId();
         }
-//        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(userId)) {
-//            throw new ForbiddenException("Недостаточно прав для просмотра оценки");
-//        }
+        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(userId)) {
+            throw new ForbiddenException("Недостаточно прав для просмотра оценки");
+        }
         return userId;
     }
 
