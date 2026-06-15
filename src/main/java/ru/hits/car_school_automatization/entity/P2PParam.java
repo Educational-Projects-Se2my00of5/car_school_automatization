@@ -19,7 +19,6 @@ import java.util.UUID;
 public class P2PParam {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @OneToOne(fetch = FetchType.LAZY)
