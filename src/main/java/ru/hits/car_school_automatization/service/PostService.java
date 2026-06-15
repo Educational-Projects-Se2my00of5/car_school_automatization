@@ -99,6 +99,16 @@ public class PostService {
         }
 
         post.setIsP2pEnabled(createPostDto.getIsP2pEnabled() != null ? createPostDto.getIsP2pEnabled() : false);
+        
+        if (Boolean.TRUE.equals(post.getIsP2pEnabled())) {
+            if (createPostDto.getP2pParam() == null) {
+                throw new BadRequestException("Для задания с P2P требуется p2pParam");
+            }
+            if (createPostDto.getDeadline() != null && createPostDto.getP2pParam().getP2pDeadline() != null &&
+                    createPostDto.getP2pParam().getP2pDeadline().isBefore(createPostDto.getDeadline().toInstant(ZoneOffset.UTC))) {
+                throw new BadRequestException("Дедлайн проверки P2P должен быть позже дедлайна сдачи задания");
+            }
+        }
 
         MultipartFile file = createPostDto.getFile();
         if (file != null && !file.isEmpty()) {
@@ -141,6 +151,9 @@ public class PostService {
 
         if (PostType.CONTROL.equals(post.getType())) {
             controlService.deleteControlByPostId(post.getId());
+        }
+        if (Boolean.TRUE.equals(post.getIsP2pEnabled())) {
+            p2pParamRepository.findById(post.getId()).ifPresent(p2pParamRepository::delete);
         }
         postRepository.delete(post);
         log.info("Пост с id {} успешно удален", postId);
@@ -338,6 +351,31 @@ public class PostService {
         // Если isMetricsVisibleToStudents установлен в false, то isMetricValuesVisibleToStudents тоже должен быть false
         if (Boolean.FALSE.equals(post.getIsMetricsVisibleToStudents())) {
             post.setIsMetricValuesVisibleToStudents(false);
+        }
+
+        if (updatePostDto.getIsP2pEnabled() != null) {
+            post.setIsP2pEnabled(updatePostDto.getIsP2pEnabled());
+            if (Boolean.TRUE.equals(updatePostDto.getIsP2pEnabled())) {
+                if (updatePostDto.getP2pParam() == null) {
+                    throw new BadRequestException("Для задания с P2P требуется p2pParam");
+                }
+                LocalDateTime deadline = post.getDeadline();
+                Instant p2pDeadline = updatePostDto.getP2pParam().getP2pDeadline();
+                if (deadline != null && p2pDeadline != null && p2pDeadline.isBefore(deadline.toInstant(ZoneOffset.UTC))) {
+                    throw new BadRequestException("Дедлайн проверки P2P должен быть позже дедлайна сдачи задания");
+                }
+
+                P2PParam param = p2pParamRepository.findById(postId).orElse(new P2PParam());
+                if (param.getId() == null) {
+                    param.setId(postId);
+                }
+                param.setType(updatePostDto.getP2pParam().getType());
+                param.setVisibility(updatePostDto.getP2pParam().getVisibility());
+                param.setP2pDeadline(p2pDeadline);
+                p2pParamRepository.save(param);
+            } else {
+                p2pParamRepository.findById(postId).ifPresent(p2pParamRepository::delete);
+            }
         }
 
         postRepository.save(post);
