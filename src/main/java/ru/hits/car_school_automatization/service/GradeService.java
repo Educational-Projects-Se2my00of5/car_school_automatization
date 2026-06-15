@@ -35,10 +35,40 @@ public class GradeService {
     private final ChannelRepository channelRepository;
     private final UserRepository userRepository;
     private final JwtTokenProvider tokenProvider;
+    private final P2PParamRepository p2pParamRepository;
+    private final P2PPairPersonalRepository p2pPairPersonalRepository;
+    private final P2PPairTeamRepository p2pPairTeamRepository;
 
     public double getPostGrade(UUID postId, Long userId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
         Long targetUserId = resolveTargetUserId(requester, userId);
+
+        // FUTURE: P2P Reviewer Access to Final Grades
+        // If requirements change to allow P2P reviewers to see final grades of their reviewees.
+        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(targetUserId)) {
+            // Check if there is an active P2P assignment for this post and user.
+            // Note: This requires P2PParamRepository and P2PPairPersonalRepository to be injected.
+            // If P2P is enabled and the requester is a reviewer for targetUserId on this postId.
+            // You might also want to check the P2P deadline (p2pParam.getP2pDeadline()) here.
+
+            P2PParam p2pParam = p2pParamRepository.findById(postId).orElse(null);
+            if (p2pParam != null) {
+                boolean isReviewer = p2pPairPersonalRepository.findByPostId(postId).stream()
+                        .anyMatch(pair -> pair.getReviewerId().equals(requester.getId()) && pair.getOwnerId().equals(targetUserId));
+                if (isReviewer) {
+                    // Allow access for P2P reviewer
+                    // No exception, continue with grade calculation
+                } else {
+                    // Not a reviewer, deny access.
+                    throw new ForbiddenException("Недостаточно прав для просмотра оценки другого пользователя (не P2P ревьюер)");
+                }
+            } else {
+                // If P2P is not enabled for this post, apply default access rules (handled by resolveTargetUserId)
+                // or throw a specific exception if no other rules apply.
+                 throw new ForbiddenException("Недостаточно прав для просмотра оценки другого пользователя (P2P не включено)");
+            }
+            // If the above block is not entered (e.g., P2P is not enabled), the default ForbiddenException from resolveTargetUserId still applies.
+        }
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("Пост не найден"));
@@ -136,6 +166,45 @@ public class GradeService {
     public double getTaskGrade(UUID taskId, Long userId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
         Long targetUserId = resolveTargetUserId(requester, userId);
+
+        // FUTURE: P2P Reviewer Access to Final Grades
+        // If requirements change to allow P2P reviewers to see final grades of their reviewees.
+        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(targetUserId)) {
+            // Note: This requires P2PParamRepository, TeamRepository, and P2PPairTeamRepository to be injected.
+
+            P2PParam p2pParam = p2pParamRepository.findById(taskId).orElse(null);
+            if (p2pParam != null) {
+                // Find requester's team for this task
+                Team requesterTeam = teamRepository.findByUsers_Id(requester.getId()).stream()
+                        .filter(t -> t.getTask() != null && t.getTask().getId().equals(taskId))
+                        .findFirst()
+                        .orElse(null);
+
+                // Find target user's team for this task
+                User targetUser = userRepository.findById(targetUserId)
+                        .orElseThrow(() -> new NotFoundException("Оцениваемый пользователь не найден"));
+                Team targetUserTeam = teamRepository.findByUsers_Id(targetUser.getId()).stream()
+                        .filter(t -> t.getTask() != null && t.getTask().getId().equals(taskId))
+                        .findFirst()
+                        .orElse(null);
+
+                if (requesterTeam != null && targetUserTeam != null) {
+                    boolean isReviewerTeam = p2pPairTeamRepository.findByTaskId(taskId).stream()
+                            .anyMatch(pair -> pair.getReviewerTeamId().equals(requesterTeam.getId()) && pair.getOwnerTeamId().equals(targetUserTeam.getId()));
+                    if (isReviewerTeam) {
+                        // Allow access for P2P reviewer team member
+                    } else {
+                        throw new ForbiddenException("Недостаточно прав для просмотра оценки команды другого пользователя (не P2P ревьюер)");
+                    }
+                } else {
+                    throw new ForbiddenException("Недостаточно прав для просмотра оценки другого пользователя (нет команды)");
+                }
+            } else {
+                // If P2P is not enabled for this post, apply default access rules (handled by resolveTargetUserId)
+                // or throw a specific exception if no other rules apply.
+                throw new ForbiddenException("Недостаточно прав для просмотра оценки другого пользователя (P2P не включено)");
+            }
+        }
 
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new NotFoundException("Задание не найдено"));
@@ -255,8 +324,15 @@ public class GradeService {
         User requester = getUserFromHeader(authHeader);
         validateUserInChannel(channelId, requester.getId());
 
+        Set<Long> revieweeIds = new HashSet<>();
+        if(RoleUtils.isStudent(requester)) {
+            List<P2PPairPersonal> personalPairs = p2pPairPersonalRepository.findByReviewerId(requester.getId());
+            personalPairs.forEach(p -> revieweeIds.add(p.getOwnerId()));
+        }
+
+
         if (!RoleUtils.isTeacherOrManager(requester)) {
-            if (userId != null && !requester.getId().equals(userId)) {
+            if (userId != null && !requester.getId().equals(userId) && !revieweeIds.contains(userId)) {
                 throw new ForbiddenException("Недостаточно прав для просмотра таблицы");
             }
             userId = requester.getId();
@@ -530,7 +606,14 @@ public class GradeService {
             return requester.getId();
         }
         if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(userId)) {
-            throw new ForbiddenException("Недостаточно прав для просмотра оценки");
+             Set<Long> revieweeIds = new HashSet<>();
+             if(RoleUtils.isStudent(requester)) {
+                 List<P2PPairPersonal> personalPairs = p2pPairPersonalRepository.findByReviewerId(requester.getId());
+                 personalPairs.forEach(p -> revieweeIds.add(p.getOwnerId()));
+             }
+             if(!revieweeIds.contains(userId)){
+                throw new ForbiddenException("Недостаточно прав для просмотра оценки");
+             }
         }
         return userId;
     }

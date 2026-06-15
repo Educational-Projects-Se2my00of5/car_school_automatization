@@ -1,0 +1,34 @@
+вот план реализации базовой структуры для P2P-оценивания:
+
+1. Создание Enum'ов
+P2PType (RANDOM, MANUAL, HIMSELF) — тип распределения.
+P2PVisibility (ALL, PART, NONE) — настройки анонимности.
+P2PPairStatus (PENDING, COMPLETED, EXPIRED) — статус проверки для конкретной пары.
+2. Обновление существующих Entity
+В классы Post и Task добавляем поле Boolean isP2pEnabled.
+3. Создание новых Entity
+P2PParam (Настройки P2P). Поля: @Id UUID id (совпадает с id Post или Task), @Enumerated P2PType type, @Enumerated P2PVisibility visibility, LocalDateTime p2pDeadline.
+P2PPairPersonal (Пара для одиночных заданий). Поля: UUID id, UUID postId, UUID reviewerId, UUID ownerId, UUID targetSolutionId, @Enumerated P2PPairStatus status.
+P2PPairTeam (Пара для командных заданий). Поля: UUID id, UUID taskId, UUID reviewerTeamId, UUID ownerTeamId, UUID targetTaskSolutionId, @Enumerated P2PPairStatus status.
+4. Создание/Обновление DTO
+Создать P2PParamDto (type, visibility, p2pDeadline).
+Обновить CreatePostDto, UpdatePostDto, PostDto, CreateTaskDto, UpdateTaskDto, TaskDto (добавить isP2pEnabled и вложенный P2PParamDto).
+Создать ReviewTasksDto, содержащий два списка: List<PersonalReviewTaskDto> и List<TeamReviewTaskDto>.
+Создать PersonalReviewTaskDto (поля postId, ownerId, targetSolutionId).
+Создать TeamReviewTaskDto (поля taskId, ownerId, targetTaskSolutionId).
+5. Создание Репозиториев, Сервисов и Контроллеров
+Repositories: P2PParamRepository, P2PPairPersonalRepository, P2PPairTeamRepository.
+Mapper: P2PMapper (через MapStruct) для маппинга параметров и задач.
+Service: P2PService с заглушками (пустыми методами) для будущей логики.
+Controller: P2PController с пустыми эндпоинтами:
+GET /p2p/jobs — для получения всех задач к проверке пользователем.
+GET /p2p/personal — получение пар для одиночных заданий (getP2PPairPersonal).
+GET /p2p/team — получение пар для командных заданий (getP2PPairTeam).
+Дополнительные методы для ручного назначения/переназначения (заглушки).
+Вопросы для уточнения:
+Названия полей для команд: В таблице P2PPairTeam на схемах указаны поля reviewerId и ownerId. Назвать их в Java-коде reviewerTeamId и ownerTeamId для большей ясности, или оставить reviewerId`` / ``ownerId?
+Связь P2PParam: Поскольку id в P2PParam должен совпадать с id Post или Task, сделать ли там просто @Id UUID id без генерации, который мы будем задавать вручную при сохранении, или связать через @OneToOne и @MapsId (что может быть сложно, так как родителя два разных)? Проще просто задавать вручную.
+Отсутствующие поля в схемах: На drawio схемах для пар (Personal/Team) нет полей status (Enum P2PPairStatus) и targetSolutionId`` / ``targetTaskSolutionId, но в обсуждении в план1 мы решили их добавить. Я добавляю их в Entity, верно?
+Жду твоих ответов и подтверждения, чтобы начать генерацию кода!
+
+ответы - reviewerTeamId и ownerTeamId - да. id в P2PParam - вручную. про статус в диаграмме забыл, добавь как надо.
