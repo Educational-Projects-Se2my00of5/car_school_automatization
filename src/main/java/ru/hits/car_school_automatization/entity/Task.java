@@ -75,6 +75,9 @@ public class Task {
     @Builder.Default
     private Set<Team> teams = new HashSet<>();
 
+    @OneToOne(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private P2PParam p2pParam;
+
     private Instant startAt;
 
     @PrePersist

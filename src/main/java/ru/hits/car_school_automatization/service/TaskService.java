@@ -35,7 +35,6 @@ public class TaskService {
     private final TeamRepository teamRepository;
     private final TeamFormationService teamFormationService;
     private final FileStorageService fileStorageService;
-    private final P2PParamRepository p2pParamRepository;
 
     public TaskDto createTask(CreateTaskDto dto, UUID channelId, String authHeader) {
         log.info("start create");
@@ -58,20 +57,22 @@ public class TaskService {
                 .minTeamSize(dto.getMinTeamSize())
                 .deadlinePenalty(DeadlinePenaltyUtils.build(dto.getDeadlinePenalty()))
                 .votingDeadline(dto.getVotingDeadline())
+                .isAnonymousVoting(dto.getIsAnonymousVoting())
+                .isP2pEnabled(dto.getIsP2pEnabled())
                 .build();
 
-        if (dto.getIsMetricsVisibleToStudents() != null) {
-            task.setIsMetricsVisibleToStudents(dto.getIsMetricsVisibleToStudents());
+        if (Boolean.TRUE.equals(dto.getIsP2pEnabled())) {
+            if (dto.getP2pParam() == null) {
+                throw new BadRequestException("Для задания с P2P требуется p2pParam");
+            }
+            P2PParam param = P2PParam.builder()
+                    .type(dto.getP2pParam().getType())
+                    .visibility(dto.getP2pParam().getVisibility())
+                    .p2pDeadline(dto.getP2pParam().getP2pDeadline())
+                    .build();
+            param.setTask(task);
+            task.setP2pParam(param);
         }
-        if (dto.getIsMetricValuesVisibleToStudents() != null) {
-            task.setIsMetricValuesVisibleToStudents(dto.getIsMetricValuesVisibleToStudents());
-        }
-
-        if (!Boolean.TRUE.equals(task.getIsMetricsVisibleToStudents())) {
-            task.setIsMetricValuesVisibleToStudents(false);
-        }
-
-        task.setIsP2pEnabled(dto.getIsP2pEnabled());
 
         Task savedTask = taskRepository.save(task);
         List<Team> teams = teamFormationService.formByTeamType(savedTask, List.copyOf(channel.getUsers()), dto);
@@ -93,6 +94,30 @@ public class TaskService {
             replaceTaskDocuments(task, dto.getDocuments());
         }
 
+        if (dto.getIsP2pEnabled() != null) {
+            task.setIsP2pEnabled(dto.getIsP2pEnabled());
+            if (Boolean.TRUE.equals(dto.getIsP2pEnabled())) {
+                if (dto.getP2pParam() == null) {
+                    throw new BadRequestException("Для задания с P2P требуется p2pParam");
+                }
+                P2PParam param = task.getP2pParam();
+                if (param == null) {
+                    param = new P2PParam();
+                    param.setTask(task);
+                    task.setP2pParam(param);
+                }
+                param.setType(dto.getP2pParam().getType());
+                param.setVisibility(dto.getP2pParam().getVisibility());
+                param.setP2pDeadline(dto.getP2pParam().getP2pDeadline());
+            } else {
+                if (task.getP2pParam() != null) {
+                    task.getP2pParam().setTask(null);
+                    task.setP2pParam(null);
+                }
+            }
+        }
+
+
         if (!Boolean.TRUE.equals(task.getIsMetricsVisibleToStudents())) {
             task.setIsMetricValuesVisibleToStudents(false);
         }
@@ -101,27 +126,8 @@ public class TaskService {
         validateMinTeamSize(task.getMinTeamSize());
         applyDeadlinePenaltyUpdate(task, dto.getDeadlinePenalty());
 
-        if (dto.getIsP2pEnabled() != null) {
-            task.setIsP2pEnabled(dto.getIsP2pEnabled());
-            if (Boolean.TRUE.equals(dto.getIsP2pEnabled()) && dto.getP2pParam() != null) {
-                P2PParam param = p2pParamRepository.findById(task.getId())
-                        .orElseGet(() -> P2PParam.builder().id(task.getId()).build());
-                param.setType(dto.getP2pParam().getType());
-                param.setVisibility(dto.getP2pParam().getVisibility());
-                param.setP2pDeadline(dto.getP2pParam().getP2pDeadline());
-                p2pParamRepository.save(param);
-            }
-        }
-
         Task savedTask = taskRepository.save(task);
-        TaskDto taskDto = taskMapper.toDto(savedTask);
-        if (Boolean.TRUE.equals(savedTask.getIsP2pEnabled())) {
-            taskDto.setIsP2pEnabled(savedTask.getIsP2pEnabled());
-            p2pParamRepository.findById(savedTask.getId()).ifPresent(param ->
-                    taskDto.setP2pParam(new ru.hits.car_school_automatization.dto.P2PParamDto(param.getType(), param.getVisibility(), param.getP2pDeadline()))
-            );
-        }
-        return taskDto;
+        return taskMapper.toDto(savedTask);
     }
 
     @Transactional
