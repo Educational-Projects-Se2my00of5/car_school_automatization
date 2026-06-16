@@ -86,6 +86,10 @@ public class PostService {
             post.setIsMetricValuesVisibleToStudents(createPostDto.getIsMetricValuesVisibleToStudents());
         }
 
+        if (Boolean.FALSE.equals(post.getIsMetricsVisibleToStudents()) && Boolean.TRUE.equals(post.getIsMetricValuesVisibleToStudents())) {
+            throw new BadRequestException("isMetricValuesVisibleToStudents может быть true только если isMetricsVisibleToStudents тоже true");
+        }
+
         if (!Boolean.TRUE.equals(post.getIsMetricsVisibleToStudents())) {
             post.setIsMetricValuesVisibleToStudents(false);
         }
@@ -457,6 +461,7 @@ public class PostService {
                 .isMetricValuesVisibleToStudents(post.getIsMetricValuesVisibleToStudents())
                 .isP2pEnabled(post.getIsP2pEnabled())
                 .p2pParam(p2pParamDto)
+                .needMark(post.getNeedMark())
                 .authorName(authorName)
                 .fileUrl(post.getFileUrl())
                 .fileName(post.getFileName())

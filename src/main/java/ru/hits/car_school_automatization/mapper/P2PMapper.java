@@ -31,6 +31,7 @@ public abstract class P2PMapper {
     public abstract P2PParamDto toDto(P2PParam entity);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "task", ignore = true)
     public abstract P2PParam toEntity(P2PParamDto dto);
 
     @Mapping(target = "post", expression = "java(postToDto(entity.getPostId()))")

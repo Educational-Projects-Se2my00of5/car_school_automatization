@@ -67,7 +67,11 @@ public class Post {
 
     @PrePersist
     protected void onCreate() {
-        needMark = PostType.TASK.equals(type);
-        createdAt = LocalDateTime.now();
+        if (needMark == null) {
+            needMark = PostType.TASK.equals(type);
+        }
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
     }
 }

@@ -31,6 +31,8 @@ public class PostDto {
     private Boolean isP2pEnabled;
     private P2PParamDto p2pParam;
 
+    private Boolean needMark;
+
     private String authorName;
     private String fileUrl;
     private String fileName;

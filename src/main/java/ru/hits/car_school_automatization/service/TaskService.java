@@ -45,6 +45,10 @@ public class TaskService {
         validateQualifiedMin(dto.getType(), dto.getQualifiedMin());
         validateMinTeamSize(dto.getMinTeamSize());
 
+        if (Boolean.FALSE.equals(dto.getIsMetricsVisibleToStudents()) && Boolean.TRUE.equals(dto.getIsMetricValuesVisibleToStudents())) {
+            throw new BadRequestException("isMetricValuesVisibleToStudents может быть true только если isMetricsVisibleToStudents тоже true");
+        }
+
         Task task = Task.builder()
                 .label(dto.getLabel().trim())
                 .text(dto.getText())
@@ -59,7 +63,13 @@ public class TaskService {
                 .votingDeadline(dto.getVotingDeadline())
                 .isAnonymousVoting(dto.getIsAnonymousVoting())
                 .isP2pEnabled(dto.getIsP2pEnabled())
+                .isMetricsVisibleToStudents(dto.getIsMetricsVisibleToStudents() != null ? dto.getIsMetricsVisibleToStudents() : false)
+                .isMetricValuesVisibleToStudents(dto.getIsMetricValuesVisibleToStudents() != null ? dto.getIsMetricValuesVisibleToStudents() : false)
                 .build();
+
+        if (!Boolean.TRUE.equals(task.getIsMetricsVisibleToStudents())) {
+            task.setIsMetricValuesVisibleToStudents(false);
+        }
 
         Task savedTask = taskRepository.save(task);
 
@@ -91,6 +101,10 @@ public class TaskService {
                 .orElseThrow(() -> new NotFoundException("Задание с id " + taskId + " не найдено"));
 
         validateTeacherLeadsChannel(authHeader, task.getChannel());
+
+        if (Boolean.FALSE.equals(dto.getIsMetricsVisibleToStudents()) && Boolean.TRUE.equals(dto.getIsMetricValuesVisibleToStudents())) {
+            throw new BadRequestException("isMetricValuesVisibleToStudents может быть true только если isMetricsVisibleToStudents тоже true");
+        }
 
         taskMapper.updateTaskFromDto(dto, task);
         if (dto.getDocuments() != null) {
