@@ -144,6 +144,20 @@ public class TaskService {
         validateMinTeamSize(task.getMinTeamSize());
         applyDeadlinePenaltyUpdate(task, dto.getDeadlinePenalty());
 
+        if (task.getTeams() != null && !task.getTeams().isEmpty()) {
+            boolean updateDeadlines = dto.getDeadline() != null || dto.getSoftDeadline() != null;
+            if (updateDeadlines) {
+                task.getTeams().forEach(team -> {
+                    if (dto.getDeadline() != null) {
+                        team.setDeadline(dto.getDeadline());
+                    }
+                    if (dto.getSoftDeadline() != null) {
+                        team.setSoftDeadline(dto.getSoftDeadline());
+                    }
+                });
+            }
+        }
+
         Task savedTask = taskRepository.save(task);
         return taskMapper.toDto(savedTask);
     }

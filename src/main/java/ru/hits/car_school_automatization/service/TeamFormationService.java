@@ -8,6 +8,7 @@ import ru.hits.car_school_automatization.entity.User;
 import ru.hits.car_school_automatization.enums.Role;
 import ru.hits.car_school_automatization.exception.BadRequestException;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -28,7 +29,7 @@ public class TeamFormationService {
         return switch (task.getTeamType()) {
             case RANDOM -> {
                 validateAverageTeamSize(students.size(), freeTeamCount, task.getMinTeamSize(), "RANDOM");
-                yield formRandom(task, students, freeTeamCount);
+                yield formRandom(task, students, freeTeamCount, dto.getDeadline(), dto.getSoftDeadline());
             }
             case DRAFT -> {
                 validateAverageTeamSize(students.size(), freeTeamCount, task.getMinTeamSize(), "DRAFT");
@@ -58,16 +59,16 @@ public class TeamFormationService {
                     throw new BadRequestException("Все капитаны должны быть студентами данного предмета");
                 }
 
-                yield formDraft(task, captains);
+                yield formDraft(task, captains, dto.getDeadline(), dto.getSoftDeadline());
             }
             case FREE -> {
                 validateAverageTeamSize(students.size(), freeTeamCount, task.getMinTeamSize(), "FREE");
-                yield formFree(task, freeTeamCount);
+                yield formFree(task, freeTeamCount, dto.getDeadline(), dto.getSoftDeadline());
             }
         };
     }
 
-    public List<Team> formRandom(Task task, List<User> users, int teamCount) {
+    public List<Team> formRandom(Task task, List<User> users, int teamCount, Instant deadline, Instant softDeadline) {
         if (teamCount < 1) {
             throw new BadRequestException("teamCount должен быть больше 0");
         }
@@ -91,6 +92,8 @@ public class TeamFormationService {
                     .name("Команда " + teamIndex++)
                     .task(task)
                     .users(new HashSet<>(bucket))
+                    .deadline(deadline)
+                    .softDeadline(softDeadline)
                     .build();
             teams.add(team);
         }
@@ -98,7 +101,7 @@ public class TeamFormationService {
         return teams;
     }
 
-    public List<Team> formDraft(Task task, List<User> captains) {
+    public List<Team> formDraft(Task task, List<User> captains, Instant deadline, Instant softDeadline) {
         List<Team> teams = new ArrayList<>();
         int teamIndex = 1;
 
@@ -108,6 +111,8 @@ public class TeamFormationService {
                     .task(task)
                     .captainId(captain.getId())
                     .users(new HashSet<>(Set.of(captain)))
+                    .deadline(deadline)
+                    .softDeadline(softDeadline)
                     .build();
             teams.add(team);
         }
@@ -115,13 +120,15 @@ public class TeamFormationService {
         return teams;
     }
 
-    public List<Team> formFree(Task task, int teamCount) {
+    public List<Team> formFree(Task task, int teamCount, Instant deadline, Instant softDeadline) {
         List<Team> teams = new ArrayList<>();
         for (int i = 1; i <= teamCount; i++) {
             Team team = Team.builder()
                     .name("Свободная команда " + i)
                     .task(task)
                     .users(new HashSet<>())
+                    .deadline(deadline)
+                    .softDeadline(softDeadline)
                     .build();
             teams.add(team);
         }

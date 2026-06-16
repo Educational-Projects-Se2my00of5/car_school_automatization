@@ -25,6 +25,8 @@ public class UpdateTaskDto {
     private Integer qualifiedMin;
     private Integer minTeamSize;
     private DeadlinePenaltyDto deadlinePenalty;
+    private Instant deadline;
+    private Instant softDeadline;
     private Boolean isMetricsVisibleToStudents;
     private Boolean isMetricValuesVisibleToStudents;
     private Instant votingDeadline;
