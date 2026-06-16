@@ -16,6 +16,6 @@ public class PersonalReviewTaskDto {
     private UUID id;
     private PostDto post;
     private UserShortDto owner;
-    private UUID targetSolutionId;
+    private SolutionDto targetSolution;
     private P2PPairStatus status;
 }

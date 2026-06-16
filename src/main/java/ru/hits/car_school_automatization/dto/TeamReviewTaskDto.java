@@ -16,6 +16,6 @@ public class TeamReviewTaskDto {
     private UUID id;
     private TaskDto task;
     private TeamDto ownerTeam;
-    private UUID targetTaskSolutionId;
+    private TaskSolutionDto targetTaskSolution;
     private P2PPairStatus status;
 }

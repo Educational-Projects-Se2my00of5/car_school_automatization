@@ -24,6 +24,10 @@ public abstract class P2PMapper {
     @Autowired
     protected TeamRepository teamRepository;
     @Autowired
+    protected ru.hits.car_school_automatization.repository.SolutionRepository solutionRepository;
+    @Autowired
+    protected ru.hits.car_school_automatization.repository.TaskSolutionRepository taskSolutionRepository;
+    @Autowired
     protected TaskMapper taskMapper;
     @Autowired
     protected TeamMapper teamMapper;
@@ -59,14 +63,14 @@ public abstract class P2PMapper {
     @Mapping(target = "id", source = "id")
     @Mapping(target = "post", expression = "java(postToDto(entity.getPostId()))")
     @Mapping(target = "owner", expression = "java(userToShortDto(entity.getOwnerId()))")
-    @Mapping(target = "targetSolutionId", source = "targetSolutionId")
+    @Mapping(target = "targetSolution", expression = "java(solutionToDto(entity.getTargetSolutionId()))")
     @Mapping(target = "status", source = "status")
     public abstract PersonalReviewTaskDto toPersonalReviewTaskDto(P2PPairPersonal entity);
 
     @Mapping(target = "id", source = "id")
     @Mapping(target = "task", expression = "java(taskToDto(entity.getTaskId()))")
     @Mapping(target = "ownerTeam", expression = "java(teamToDto(entity.getOwnerTeamId()))")
-    @Mapping(target = "targetTaskSolutionId", source = "targetTaskSolutionId")
+    @Mapping(target = "targetTaskSolution", expression = "java(taskSolutionToDto(entity.getTargetTaskSolutionId()))")
     @Mapping(target = "status", source = "status")
     public abstract TeamReviewTaskDto toTeamReviewTaskDto(P2PPairTeam entity);
 
@@ -103,6 +107,53 @@ public abstract class P2PMapper {
     protected UserShortDto userToShortDto(Long id) {
         if (id == null) return null;
         return userRepository.findById(id).map(u -> new UserShortDto(u.getId(), u.getFirstName(), u.getLastName(), u.getEmail())).orElse(null);
+    }
+
+    protected SolutionDto solutionToDto(java.util.UUID id) {
+        if (id == null) return null;
+        return solutionRepository.findById(id).map(s -> {
+            SolutionDto dto = new SolutionDto();
+            dto.setId(s.getId());
+            dto.setStudentId(s.getStudentId());
+            dto.setTaskId(s.getTaskId());
+            dto.setText(s.getText());
+            dto.setFileUrl(s.getFileUrl());
+            dto.setFileName(s.getFileName());
+            dto.setSubmittedAt(s.getSubmittedAt());
+            dto.setUpdatedAt(s.getUpdatedAt());
+            if (s.getStudentId() != null) {
+                userRepository.findById(s.getStudentId()).ifPresent(student ->
+                        dto.setStudentName(student.getFirstName() + " " + student.getLastName()));
+            }
+            if (s.getTaskId() != null) {
+                postRepository.findById(s.getTaskId()).ifPresent(post ->
+                        dto.setTaskLabel(post.getLabel()));
+            }
+            return dto;
+        }).orElse(null);
+    }
+
+    protected TaskSolutionDto taskSolutionToDto(java.util.UUID id) {
+        if (id == null) return null;
+        return taskSolutionRepository.findById(id).map(s -> {
+            TaskSolutionDto dto = new TaskSolutionDto();
+            dto.setId(s.getId());
+            dto.setTaskId(s.getTaskId());
+            dto.setStudentId(s.getStudentId());
+            dto.setCreatedAt(s.getCreatedAt());
+            dto.setUpdatedAt(s.getUpdatedAt());
+            if (s.getDocuments() != null) {
+                dto.setDocuments(s.getDocuments().stream()
+                        .map(document -> TaskDocumentDto.builder()
+                                .fileName(document.getFileName())
+                                .fileUrl(document.getFileUrl())
+                                .build())
+                        .toList());
+            } else {
+                dto.setDocuments(new java.util.ArrayList<>());
+            }
+            return dto;
+        }).orElse(null);
     }
 }
 
