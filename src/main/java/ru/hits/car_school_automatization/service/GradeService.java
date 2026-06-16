@@ -35,10 +35,21 @@ public class GradeService {
     private final ChannelRepository channelRepository;
     private final UserRepository userRepository;
     private final JwtTokenProvider tokenProvider;
+    private final P2PPairPersonalRepository p2pPairPersonalRepository;
+    private final P2PPairTeamRepository p2pPairTeamRepository;
 
     public double getPostGrade(UUID postId, Long userId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
-        Long targetUserId = resolveTargetUserId(requester, userId);
+        Long targetUserId = userId == null ? requester.getId() : userId;
+
+        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(targetUserId)) {
+            boolean isReviewer = p2pPairPersonalRepository.findByPostId(postId).stream()
+                    .anyMatch(pair -> pair.getReviewerId().equals(requester.getId()) && pair.getOwnerId().equals(targetUserId));
+
+            if (!isReviewer) {
+                throw new ForbiddenException("Недостаточно прав для просмотра оценки");
+            }
+        }
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("Пост не найден"));
@@ -135,7 +146,27 @@ public class GradeService {
 
     public double getTaskGrade(UUID taskId, Long userId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
-        Long targetUserId = resolveTargetUserId(requester, userId);
+        Long targetUserId = userId == null ? requester.getId() : userId;
+
+        if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(targetUserId)) {
+            Team requesterTeam = teamRepository.findByUsers_Id(requester.getId()).stream()
+                    .filter(t -> t.getTask() != null && t.getTask().getId().equals(taskId))
+                    .findFirst().orElse(null);
+
+            Team targetTeam = teamRepository.findByUsers_Id(targetUserId).stream()
+                    .filter(t -> t.getTask() != null && t.getTask().getId().equals(taskId))
+                    .findFirst().orElse(null);
+
+            boolean isReviewerTeam = false;
+            if (requesterTeam != null && targetTeam != null) {
+                isReviewerTeam = p2pPairTeamRepository.findByTaskId(taskId).stream()
+                        .anyMatch(pair -> pair.getReviewerTeamId().equals(requesterTeam.getId()) && pair.getOwnerTeamId().equals(targetTeam.getId()));
+            }
+
+            if (!isReviewerTeam) {
+                throw new ForbiddenException("Недостаточно прав для просмотра оценки");
+            }
+        }
 
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new NotFoundException("Задание не найдено"));
@@ -194,9 +225,6 @@ public class GradeService {
 
     public List<UserGradeDto> getTaskTeamGrades(UUID taskId, UUID teamId, String authHeader) {
         User requester = getUserFromHeader(authHeader);
-        if (!RoleUtils.isTeacherOrManager(requester)) {
-            throw new ForbiddenException("Недостаточно прав для просмотра оценок команды");
-        }
 
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new NotFoundException("Команда не найдена"));
@@ -206,6 +234,27 @@ public class GradeService {
         }
         if (!team.getTask().getId().equals(taskId)) {
             throw new BadRequestException("Команда не принадлежит заданию");
+        }
+
+        if (!RoleUtils.isTeacherOrManager(requester)) {
+            boolean isMember = team.getUsers() != null && team.getUsers().stream()
+                    .anyMatch(u -> u.getId().equals(requester.getId()));
+
+            boolean isReviewer = false;
+            if (!isMember) {
+                Team requesterTeam = teamRepository.findByUsers_Id(requester.getId()).stream()
+                        .filter(t -> t.getTask() != null && t.getTask().getId().equals(taskId))
+                        .findFirst().orElse(null);
+
+                if (requesterTeam != null) {
+                    isReviewer = p2pPairTeamRepository.findByTaskId(taskId).stream()
+                            .anyMatch(pair -> pair.getReviewerTeamId().equals(requesterTeam.getId()) && pair.getOwnerTeamId().equals(teamId));
+                }
+            }
+
+            if (!isMember && !isReviewer) {
+                throw new ForbiddenException("Недостаточно прав для просмотра оценок команды");
+            }
         }
 
         if (team.getUsers() == null || team.getUsers().isEmpty()) {
