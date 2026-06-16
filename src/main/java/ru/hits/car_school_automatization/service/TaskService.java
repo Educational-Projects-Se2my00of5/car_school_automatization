@@ -61,20 +61,23 @@ public class TaskService {
                 .isP2pEnabled(dto.getIsP2pEnabled())
                 .build();
 
+        Task savedTask = taskRepository.save(task);
+
         if (Boolean.TRUE.equals(dto.getIsP2pEnabled())) {
             if (dto.getP2pParam() == null) {
                 throw new BadRequestException("Для задания с P2P требуется p2pParam");
             }
             P2PParam param = P2PParam.builder()
+                    .id(savedTask.getId())
                     .type(dto.getP2pParam().getType())
                     .visibility(dto.getP2pParam().getVisibility())
                     .p2pDeadline(dto.getP2pParam().getP2pDeadline())
                     .build();
-            param.setTask(task);
-            task.setP2pParam(param);
+            param.setTask(savedTask);
+            savedTask.setP2pParam(param);
+            savedTask = taskRepository.save(savedTask);
         }
 
-        Task savedTask = taskRepository.save(task);
         List<Team> teams = teamFormationService.formByTeamType(savedTask, List.copyOf(channel.getUsers()), dto);
         if (!teams.isEmpty()) {
             List<Team> savedTeams = teamRepository.saveAll(teams);
@@ -103,6 +106,7 @@ public class TaskService {
                 P2PParam param = task.getP2pParam();
                 if (param == null) {
                     param = new P2PParam();
+                    param.setId(task.getId());
                     param.setTask(task);
                     task.setP2pParam(param);
                 }
