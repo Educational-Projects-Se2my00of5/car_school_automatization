@@ -42,10 +42,8 @@ public class MetricValueService {
 
         // P2P access validation
         if (!RoleUtils.isTeacherOrManager(requester) && !requester.getId().equals(targetUserId)) {
-            P2PParam p2pParam = p2pParamRepository.findById(postId).orElse(null);
-            if (p2pParam == null) {
-                throw new ForbiddenException("Нет прав для просмотра чужих оценок");
-            }
+            p2pParamRepository.findById(postId)
+                    .orElseThrow(() -> new ForbiddenException("Нет прав для просмотра чужих оценок (P2P не настроено)"));
 
             boolean isReviewer = p2pPairPersonalRepository.findByPostId(postId).stream()
                     .anyMatch(pair -> pair.getReviewerId().equals(requester.getId()) && pair.getOwnerId().equals(targetUserId));
@@ -198,10 +196,39 @@ public class MetricValueService {
         } else {
             boolean isMember = team.getUsers() != null && team.getUsers().stream()
                     .anyMatch(u -> requester.getId().equals(u.getId()));
+
+            boolean isReviewer = false;
             if (!isMember) {
+                // Ищем команду запрашивающего
+                List<Team> requesterTeams = teamRepository.findByUsers_Id(requester.getId()).stream()
+                        .filter(t -> t.getTask() != null && t.getTask().getId().equals(taskId))
+                        .toList();
+
+                if (!requesterTeams.isEmpty()) {
+                    Team requesterTeam = requesterTeams.get(0);
+                    // Проверяем, назначена ли команда запрашивающего проверять эту команду
+                    isReviewer = p2pPairTeamRepository.findByTaskId(taskId).stream()
+                            .anyMatch(pair -> pair.getReviewerTeamId().equals(requesterTeam.getId()) 
+                                           && pair.getOwnerTeamId().equals(teamId));
+                }
+            }
+
+            if (!isMember && !isReviewer) {
                 throw new ForbiddenException("Недостаточно прав для просмотра оценок команды");
             }
-            targetUserId = requester.getId();
+
+            if (team.getUsers() == null || team.getUsers().isEmpty()) {
+                List<Metric> metrics = metricRepository.findByTaskId(taskId);
+                return metrics.stream()
+                        .map(metric -> MetricWithValuesDto.builder()
+                                .metric(metricMapper.toDto(metric))
+                                .values(List.of())
+                                .build())
+                        .toList();
+            }
+
+            // Если студент участник — берём его ID. Если ревьюер — берём ID любого участника проверяемой команды.
+            targetUserId = isMember ? requester.getId() : team.getUsers().iterator().next().getId();
         }
 
         var task = taskRepository.findById(taskId)
